@@ -1,0 +1,252 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  FileText,
+  MessagesSquare,
+  Pencil,
+  Layers,
+  ArrowRight,
+  Download,
+  Send,
+  Sparkles,
+  CheckCircle2,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { STAGE_LABELS } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+import type { BriefStage, BriefStatus } from "@/lib/enums";
+
+export type BriefHeaderStage = BriefStage;
+
+/**
+ * Sticky workspace header used by every brief sub‑page (Preview /
+ * Builder / Edit / Proposals). Provides:
+ *
+ *   • breadcrumb + title + status & completion
+ *   • tab navigation across the four canvases
+ *   • a stage‑aware primary CTA (Submit / Approve / Pick winner)
+ *   • secondary actions (Download PDF, AI builder shortcut)
+ *
+ * The component is intentionally a server‑safe `"use client"` so child
+ * pages can render it without lifting any state — all dynamic state
+ * (active tab) is derived from the pathname.
+ */
+export function BriefWorkspaceHeader({
+  briefId,
+  title,
+  stage,
+  status,
+  completion,
+  proposalsCount,
+  hasMatches,
+  primaryAction,
+}: {
+  briefId: string;
+  title: string;
+  stage: BriefHeaderStage;
+  status: BriefStatus;
+  completion: number;
+  proposalsCount: number;
+  hasMatches: boolean;
+  /** Optional override for the right‑side primary action. */
+  primaryAction?: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const tab = pathname?.split("/").pop() ?? "preview";
+
+  const tabs: Array<{ id: string; label: string; href: string; icon: React.ComponentType<{ className?: string }>; show: boolean; badge?: string }> = [
+    { id: "preview",   label: "Overview",  href: `/briefs/${briefId}/preview`,   icon: FileText,        show: true },
+    { id: "builder",   label: "AI Builder", href: `/briefs/${briefId}/builder`,   icon: MessagesSquare,  show: status === "DRAFT" || stage === "INTAKE" || stage === "SOURCING" || stage === "REVIEW" },
+    { id: "edit",      label: "Manual edit", href: `/briefs/${briefId}/edit`,      icon: Pencil,          show: true },
+    { id: "proposals", label: "Proposals", href: `/briefs/${briefId}/proposals`, icon: Layers,          show: proposalsCount > 0 || stage === "PROPOSALS" || stage === "SELECTION" || stage === "INTRODUCTION", badge: proposalsCount > 0 ? String(proposalsCount) : undefined },
+  ];
+
+  const action =
+    primaryAction ??
+    defaultPrimaryAction({ briefId, stage, status, completion, hasMatches, proposalsCount });
+
+  return (
+    <div
+      className={cn(
+        "sticky top-14 z-20 -mx-6 px-6 pt-4 pb-3",
+        "bg-[hsl(220_28%_98%)/0.92] backdrop-blur-md border-b border-border",
+      )}
+    >
+      <div className="page-container-wide flex flex-col gap-3 px-0">
+        {/* Title row */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0 flex-1">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground transition"
+            >
+              ← Back to workspace
+            </Link>
+            <h1 className="mt-0.5 text-[22px] sm:text-[26px] font-semibold tracking-[-0.018em] text-foreground truncate">
+              {title}
+            </h1>
+            <div className="mt-1.5 flex items-center gap-3 text-[12px] text-muted-foreground">
+              <Badge
+                variant={status === "DRAFT" ? "muted" : "success"}
+                className="text-[10px] uppercase tracking-wider"
+              >
+                {status}
+              </Badge>
+              <span>·</span>
+              <span className="font-medium text-foreground">{STAGE_LABELS[stage] ?? stage}</span>
+              <span>·</span>
+              <span className="inline-flex items-center gap-2">
+                <span className="tabular-nums">{completion}% complete</span>
+                <span className="hidden sm:block w-24 h-1 rounded-full bg-secondary overflow-hidden">
+                  <span
+                    className="block h-full bg-gradient-to-r from-cyan-400 to-cyan-600 rounded-full transition-[width] duration-400"
+                    style={{ width: `${Math.min(100, completion)}%` }}
+                  />
+                </span>
+              </span>
+            </div>
+          </div>
+
+          {/* Right cluster: action + share */}
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
+              <a href={`/api/briefs/${briefId}/pdf`} target="_blank" rel="noopener">
+                <Download className="h-3.5 w-3.5" /> PDF
+              </a>
+            </Button>
+            {action}
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex items-end gap-1 -mb-3 overflow-x-auto">
+          {tabs.filter((t) => t.show).map((t) => {
+            const active = tab === t.id;
+            return (
+              <Link
+                key={t.id}
+                href={t.href}
+                className={cn(
+                  "group inline-flex items-center gap-1.5 px-3.5 h-10 text-[13px] font-medium",
+                  "border-b-2 transition-[color,border-color] duration-180",
+                  active
+                    ? "text-foreground border-cyan-500"
+                    : "text-muted-foreground border-transparent hover:text-foreground hover:border-border-strong",
+                )}
+              >
+                <t.icon className="h-3.5 w-3.5" />
+                {t.label}
+                {t.badge && (
+                  <span
+                    className={cn(
+                      "ml-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded",
+                      active
+                        ? "bg-cyan-500/15 text-cyan-700 border border-cyan-500/25"
+                        : "bg-secondary text-muted-foreground",
+                    )}
+                  >
+                    {t.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function defaultPrimaryAction({
+  briefId,
+  stage,
+  status,
+  completion,
+  hasMatches,
+  proposalsCount,
+}: {
+  briefId: string;
+  stage: BriefStage;
+  status: BriefStatus;
+  completion: number;
+  hasMatches: boolean;
+  proposalsCount: number;
+}) {
+  // DRAFT + INTAKE → submit brief (gated by completion ≥ 40)
+  if (status === "DRAFT" && stage === "INTAKE") {
+    return (
+      <Button
+        asChild
+        size="sm"
+        disabled={completion < 40}
+        className="bg-cyan-600 hover:bg-cyan-700 text-white disabled:opacity-50"
+      >
+        <Link href={`/briefs/${briefId}/preview#review-workflow`}>
+          <Send className="h-3.5 w-3.5" /> Submit brief
+        </Link>
+      </Button>
+    );
+  }
+
+  // REVIEW with matches → approve partners
+  if (stage === "REVIEW" && hasMatches) {
+    return (
+      <Button
+        asChild
+        size="sm"
+        className="bg-amber-500 hover:bg-amber-600 text-white"
+      >
+        <Link href={`/briefs/${briefId}/preview#matches`}>
+          <CheckCircle2 className="h-3.5 w-3.5" /> Approve matches
+        </Link>
+      </Button>
+    );
+  }
+
+  // SELECTION with proposals → pick winner
+  if (stage === "SELECTION" && proposalsCount > 0) {
+    return (
+      <Button
+        asChild
+        size="sm"
+        className="bg-cyan-600 hover:bg-cyan-700 text-white"
+      >
+        <Link href={`/briefs/${briefId}/proposals`}>
+          <Sparkles className="h-3.5 w-3.5" /> Pick winner
+        </Link>
+      </Button>
+    );
+  }
+
+  // PROPOSALS — prompt to compare
+  if (stage === "PROPOSALS" && proposalsCount > 0) {
+    return (
+      <Button asChild size="sm" className="bg-cyan-600 hover:bg-cyan-700 text-white">
+        <Link href={`/briefs/${briefId}/proposals`}>
+          <Layers className="h-3.5 w-3.5" /> Compare proposals
+        </Link>
+      </Button>
+    );
+  }
+
+  // INTRODUCTION — kickoff
+  if (stage === "INTRODUCTION") {
+    return (
+      <Badge variant="success" className="h-7 px-3">
+        <CheckCircle2 className="h-3 w-3" /> Kickoff in progress
+      </Badge>
+    );
+  }
+
+  // Otherwise jump to AI builder
+  return (
+    <Button asChild size="sm" className="bg-cyan-600 hover:bg-cyan-700 text-white">
+      <Link href={`/briefs/${briefId}/builder`}>
+        Continue scoping <ArrowRight className="h-3.5 w-3.5" />
+      </Link>
+    </Button>
+  );
+}

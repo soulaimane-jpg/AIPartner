@@ -1,0 +1,15 @@
+/**
+ * Sentry — Edge runtime (middleware, edge route handlers).
+ * Smaller surface area than the Node config; replay isn't available.
+ */
+
+import * as Sentry from "@sentry/nextjs";
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV,
+    tracesSampleRate: process.env.NODE_ENV === "production" ? 0.05 : 1.0,
+    ignoreErrors: [/^NEXT_REDIRECT/, /^NEXT_NOT_FOUND/],
+  });
+}

@@ -1,0 +1,28 @@
+===== DNS: aipartner.cloud (A) =====
+216.239.32.21
+216.239.36.21
+216.239.34.21
+216.239.38.21
+===== DNS: aipartner.cloud (AAAA) =====
+2001:4860:4802:36::15
+2001:4860:4802:34::15
+2001:4860:4802:38::15
+2001:4860:4802:32::15
+===== DNS: aipartner.cloud (CNAME) =====
+===== DNS: www.aipartner.cloud =====
+===== DNS: app.aipartner.cloud =====
+===== Expected LB IP =====
+34.13.122.98
+===== Cloud Run domain mappings =====
+   DOMAIN           SERVICE    REGION
+[32m✔[39;0m  aipartner.cloud  aipartner  europe-west1
+===== LB reserved IP =====
+34.13.122.98
+===== SSL cert (status + domains) =====
+ACTIVE	34.13.122.98.sslip.io
+===== curl http://aipartner.cloud (-> where?) =====
+code=404 redirect= ip=216.239.32.21
+===== curl https://aipartner.cloud (cert?) =====
+code=404 ip=216.239.38.21
+--- with -k (ignore cert) ---
+code=404 ip=216.239.36.21

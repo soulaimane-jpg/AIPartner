@@ -1,0 +1,70 @@
+===== Cloud Run ingress =====
+ERROR: (gcloud.run.services.describe) There was a problem refreshing your current auth tokens: Reauthentication failed. cannot prompt during non-interactive execution.
+Please run:
+
+  $ gcloud auth login
+
+to obtain new credentials.
+
+If you have already logged in with a different account, run:
+
+  $ gcloud config set account ACCOUNT
+
+to select an already authenticated account to use.
+
+===== Cloud Run URL + traffic =====
+ERROR: (gcloud.run.services.describe) There was a problem refreshing your current auth tokens: Reauthentication failed. cannot prompt during non-interactive execution.
+Please run:
+
+  $ gcloud auth login
+
+to obtain new credentials.
+
+If you have already logged in with a different account, run:
+
+  $ gcloud config set account ACCOUNT
+
+to select an already authenticated account to use.
+
+===== domain mappings (europe-west1) =====
+ERROR: (gcloud.run.domain-mappings.list) unrecognized arguments:
+  
+ --region flag is available in one or more alternate release tracks. Try:
+
+  gcloud alpha run domain-mappings list --region
+  gcloud beta run domain-mappings list --region
+
+  --region=europe-west1 (did you mean '--uri'?)
+  To search the help text of gcloud commands, run:
+  gcloud help -- SEARCH_TERMS
+
+===== LB forwarding rules =====
+ERROR: (gcloud.compute.forwarding-rules.list) There was a problem refreshing your current auth tokens: Reauthentication failed. cannot prompt during non-interactive execution.
+Please run:
+
+  $ gcloud auth login
+
+to obtain new credentials.
+
+If you have already logged in with a different account, run:
+
+  $ gcloud config set account ACCOUNT
+
+to select an already authenticated account to use.
+
+===== ssl cert =====
+ERROR: (gcloud.compute.ssl-certificates.describe) There was a problem refreshing your current auth tokens: Reauthentication failed. cannot prompt during non-interactive execution.
+Please run:
+
+  $ gcloud auth login
+
+to obtain new credentials.
+
+If you have already logged in with a different account, run:
+
+  $ gcloud config set account ACCOUNT
+
+to select an already authenticated account to use.
+
+===== sslip.io LB check =====
+sslip.io/auth/sign-in code=200

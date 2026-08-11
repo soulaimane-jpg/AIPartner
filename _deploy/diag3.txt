@@ -1,0 +1,18 @@
+===== authoritative NS for aipartner.cloud =====
+dns2.registrar-servers.com.
+dns1.registrar-servers.com.
+===== A @ via Google DNS (8.8.8.8) =====
+34.13.122.98
+===== A www via Google DNS (8.8.8.8) =====
+34.13.122.98
+===== A @ via Cloudflare DNS (1.1.1.1) =====
+34.13.122.98
+===== AAAA @ (should be EMPTY) =====
+===== cert statuses =====
+PROVISIONING	aipartner.cloud=PROVISIONING
+PROVISIONING	www.aipartner.cloud=PROVISIONING
+===== HTTP -> HTTPS redirect (DNS->LB path) =====
+http://aipartner.cloud code=404 redirect= ip=216.239.32.21
+http://www.aipartner.cloud code=000 redirect= ip=
+===== HTTPS (no -k: passes only when cert ACTIVE+trusted) =====
+https://aipartner.cloud code=404 ip=216.239.38.21

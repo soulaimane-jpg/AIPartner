@@ -1,0 +1,20 @@
+=== apex cert detail ===
+creationTimestamp: '2026-06-01T13:09:58.224-07:00'
+managed:
+  domainStatus:
+    aipartner.cloud: FAILED_NOT_VISIBLE
+  status: PROVISIONING
+=== www cert detail ===
+managed:
+  domainStatus:
+    www.aipartner.cloud: ACTIVE
+  status: ACTIVE
+=== certs attached to HTTPS proxy ===
+https://www.googleapis.com/compute/v1/projects/aipartner-starting-project/global/sslCertificates/aipartner-cert;https://www.googleapis.com/compute/v1/projects/aipartner-starting-project/global/sslCertificates/aipartner-apex-cert;https://www.googleapis.com/compute/v1/projects/aipartner-starting-project/global/sslCertificates/aipartner-www-cert
+=== Cloud Run domain mappings (expect NONE for aipartner.cloud) ===
+Listed 0 items.
+=== authoritative NS: apex A ===
+34.13.122.98
+=== authoritative NS: apex AAAA (expect empty) ===
+=== CAA on apex (must allow pki.goog / be empty) ===
+=== CAA on parent zone .cloud-level (informational) ===

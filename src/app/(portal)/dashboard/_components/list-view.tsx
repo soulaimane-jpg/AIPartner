@@ -1,0 +1,126 @@
+"use client";
+
+import { m } from "framer-motion";
+import { AlertCircle, ArrowRight, Clock, FileText } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { STAGE_LABELS } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+import type { WorkspaceBrief } from "./types";
+
+/**
+ * Compact row‑based listing of briefs. Click opens the detail drawer.
+ *
+ * Unlike the board view, the list keeps every brief in a single stream
+ * ordered by `updatedAt desc` so you can scan progress across all
+ * stages at once.
+ */
+export function ListView({
+  briefs,
+  onSelect,
+}: {
+  briefs: WorkspaceBrief[];
+  onSelect: (brief: WorkspaceBrief) => void;
+}) {
+  return (
+    <div className="rounded-2xl bg-card border border-border overflow-hidden shadow-elev-1">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] items-center gap-4 px-5 py-2.5 bg-secondary/40 border-b border-border text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <span>Brief</span>
+        <span className="hidden sm:inline">Stage</span>
+        <span className="hidden md:inline">Completion</span>
+        <span className="hidden md:inline">Proposals</span>
+        <span className="text-right">Updated</span>
+      </div>
+
+      <div className="divide-y divide-border">
+        {briefs.map((b, i) => (
+          <m.button
+            key={b.id}
+            type="button"
+            onClick={() => onSelect(b)}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: i * 0.015, ease: [0.22, 1, 0.36, 1] }}
+            className={cn(
+              "group w-full text-left grid grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] items-center gap-4 px-5 py-3.5",
+              "hover:bg-secondary/30 transition-colors duration-150",
+              "focus-visible:outline-none focus-visible:bg-secondary/50",
+            )}
+          >
+            {/* Title + status */}
+            <div className="min-w-0 flex items-center gap-2.5">
+              {b.hasActionRequired ? (
+                <span
+                  aria-hidden
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-amber-50 text-amber-700 border border-amber-200"
+                >
+                  <AlertCircle className="h-3.5 w-3.5" />
+                </span>
+              ) : (
+                <span
+                  aria-hidden
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-secondary text-muted-foreground"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                </span>
+              )}
+              <div className="min-w-0">
+                <div className="text-[13.5px] font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                  {b.title}
+                </div>
+                <div className="text-[11.5px] text-muted-foreground truncate">
+                  {b.services.length > 0 ? b.services.slice(0, 3).join(" · ") : "No services set"}
+                </div>
+              </div>
+            </div>
+
+            {/* Stage */}
+            <Badge variant="muted" className="hidden sm:inline-flex text-[10.5px] uppercase tracking-wider">
+              {STAGE_LABELS[b.stage] ?? b.stage}
+            </Badge>
+
+            {/* Completion */}
+            <div className="hidden md:flex items-center gap-2 w-[120px]">
+              <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-[width] duration-320"
+                  style={{ width: `${Math.min(100, b.completion)}%` }}
+                />
+              </div>
+              <span className="text-[11px] tabular-nums text-muted-foreground w-8 text-right">
+                {b.completion}%
+              </span>
+            </div>
+
+            {/* Proposals */}
+            <span className="hidden md:inline-flex items-center gap-1 text-[12px] text-muted-foreground tabular-nums">
+              <FileText className="h-3 w-3" />
+              {b.proposalsCount}
+            </span>
+
+            {/* Updated */}
+            <div className="flex items-center gap-2 text-right">
+              <span className="text-[11.5px] text-muted-foreground tabular-nums inline-flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {relativeAge(new Date(b.updatedAt))}
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </m.button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function relativeAge(d: Date): string {
+  const ms = Date.now() - d.getTime();
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d`;
+  const months = Math.floor(days / 30);
+  return `${months}mo`;
+}

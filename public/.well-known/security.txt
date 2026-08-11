@@ -1,0 +1,13 @@
+# Vulnerability disclosure policy for AI Partner.
+# https://datatracker.ietf.org/doc/html/rfc9116
+#
+# If you believe you have found a security issue, please report it to
+# the address below. We commit to acknowledging within 2 business days
+# and will keep you informed throughout triage.
+
+Contact: mailto:security@ai-partner.local
+Expires: 2027-01-01T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://ai-partner.local/.well-known/security.txt
+Policy: https://ai-partner.local/trust/vulnerability-disclosure
+Hiring: https://ai-partner.local/careers

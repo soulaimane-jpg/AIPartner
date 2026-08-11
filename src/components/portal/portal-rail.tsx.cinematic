@@ -1,0 +1,426 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { m } from "framer-motion";
+import {
+  LayoutGrid,
+  FolderKanban,
+  FileStack,
+  Activity,
+  BookOpen,
+  TrendingUp,
+  Users,
+  BarChart3,
+  Plus,
+  Inbox,
+  Layers,
+  Trophy,
+  UserCircle,
+  Network,
+  Building2,
+  Settings,
+  HelpCircle,
+  ChevronsLeft,
+  ChevronsRight,
+  type LucideIcon,
+} from "lucide-react";
+import { MarkLogo, Wordmark } from "@/components/brand";
+import { cn } from "@/lib/utils";
+import type { RailItem, RailIconKey, PortalNav } from "./portal-nav-config";
+
+const ICONS: Record<RailIconKey, LucideIcon> = {
+  workspace: LayoutGrid,
+  briefs:    FolderKanban,
+  proposals: FileStack,
+  activity:  Activity,
+  templates: BookOpen,
+  pipeline:  TrendingUp,
+  leads:     Users,
+  insights:  BarChart3,
+  refer:     Plus,
+  inbox:     Inbox,
+  won:       Trophy,
+  profile:   UserCircle,
+  matches:   Network,
+  partners:  Building2,
+  users:     Users,
+  settings:  Settings,
+  help:      HelpCircle,
+};
+
+type Badges = Partial<Record<NonNullable<RailItem["badgeKey"]>, number>>;
+
+/**
+ * Deep-navy collapsible left rail. Mounted once by `<PortalShell />`.
+ *
+ * Cinema chrome:
+ *   • Multi-layer aurora glow + drifting cyan halo (matches landing hero).
+ *   • Noise overlay dithers gradient banding on large displays.
+ *   • Items render with a staggered fade/slide on first paint.
+ *   • Active item: 3px cyan accent bar + soft inner glow + icon recolour.
+ *   • Collapsed state persisted to `localStorage`; width transitions via
+ *     the `--rail-w` CSS variable so the canvas can offset itself with a
+ *     single CSS rule.
+ */
+export function PortalRail({
+  nav,
+  user,
+  badges,
+  onCommand,
+}: {
+  nav: PortalNav;
+  user: { name: string; email: string; role: string };
+  badges?: Badges;
+  /** Optional handler for action items (e.g. open command palette / refer modal). */
+  onCommand?: (action: NonNullable<RailItem["action"]>) => void;
+}) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState<boolean>(false);
+
+  // Restore persisted collapsed state.
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("portal:rail:collapsed");
+      if (stored === "1") {
+        setCollapsed(true);
+        document.documentElement.style.setProperty("--rail-w", "64px");
+      } else {
+        document.documentElement.style.setProperty("--rail-w", "240px");
+      }
+    } catch {
+      /* SSR or no storage — leave defaults */
+    }
+  }, []);
+
+  const toggle = useCallback(() => {
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        window.localStorage.setItem("portal:rail:collapsed", next ? "1" : "0");
+      } catch {/* no-op */}
+      document.documentElement.style.setProperty("--rail-w", next ? "64px" : "240px");
+      return next;
+    });
+  }, []);
+
+  const initials =
+    (user.name || user.email || "?")
+      .split(/\s+/)
+      .map((p) => p[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "·";
+
+  return (
+    <aside
+      className={cn(
+        "fixed inset-y-0 left-0 z-40 flex flex-col text-white isolate",
+        "transition-[width] duration-360 ease-out-quart",
+      )}
+      style={{
+        width: "var(--rail-w, 240px)",
+        background: "hsl(224 55% 8%)",
+      }}
+      data-collapsed={collapsed ? "true" : "false"}
+      aria-label="Primary"
+    >
+      {/* Layer 1 — multi-radial aurora */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: [
+            "radial-gradient(40% 36% at 8% 6%, hsl(212 90% 50% / 0.30) 0%, transparent 70%)",
+            "radial-gradient(38% 28% at 110% 92%, hsl(189 92% 47% / 0.28) 0%, transparent 70%)",
+            "radial-gradient(35% 22% at 100% 12%, hsl(192 90% 36% / 0.16) 0%, transparent 70%)",
+          ].join(", "),
+        }}
+      />
+
+      {/* Layer 2 — slow drifting aurora blur */}
+      <div aria-hidden className="pointer-events-none absolute inset-[-10%] opacity-50 blur-[60px] animate-pulse-soft"
+        style={{
+          background:
+            "radial-gradient(28% 22% at 25% 32%, hsl(188 92% 55% / 0.30) 0%, transparent 70%), radial-gradient(32% 24% at 78% 64%, hsl(212 90% 56% / 0.22) 0%, transparent 70%)",
+        }}
+      />
+
+      {/* Layer 3 — fine noise dither */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.18] mix-blend-overlay"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml;utf8,<svg viewBox='0 0 320 320' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")",
+          backgroundSize: "320px 320px",
+        }}
+      />
+
+      {/* Inner border + right hairline */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 border-r border-white/8" />
+      <div aria-hidden className="pointer-events-none absolute right-0 inset-y-0 w-px bg-gradient-to-b from-cyan-400/0 via-cyan-400/30 to-cyan-400/0" />
+
+      {/* ── Brand row ─────────────────────────────────────────── */}
+      <div className="relative flex items-center h-14 px-3 border-b border-white/8">
+        <Link
+          href="/"
+          className="group/brand inline-flex items-center gap-2.5 outline-none rounded-md"
+          aria-label="AI Partner — Home"
+        >
+          <MarkLogo size={28} inverse />
+          {!collapsed && <Wordmark size="sm" inverse />}
+        </Link>
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={cn(
+            "ml-auto inline-flex h-7 w-7 items-center justify-center rounded-md",
+            "text-white/55 hover:text-white hover:bg-white/8 transition-all duration-180 ease-out-quart",
+            "hover:scale-105 active:scale-95",
+            collapsed && "absolute right-2 top-3.5 ml-0",
+          )}
+        >
+          {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
+        </button>
+      </div>
+
+      {/* ── Role chip ─────────────────────────────────────────── */}
+      <m.div
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
+        className={cn("relative px-3 pt-3", collapsed && "px-2")}
+      >
+        <div
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5",
+            "bg-white/8 border border-white/10 text-[10px] font-semibold tracking-[0.14em] uppercase text-white/75",
+            "shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08)]",
+          )}
+          title={user.role}
+        >
+          <span
+            aria-hidden
+            className="relative flex h-1.5 w-1.5"
+          >
+            <span className="absolute inset-0 rounded-full bg-cyan-300 animate-pulse-soft" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_hsl(189_92%_47%/1)]" />
+          </span>
+          {!collapsed && (user.role || "Member")}
+        </div>
+      </m.div>
+
+      {/* ── Primary nav ───────────────────────────────────────── */}
+      <m.nav
+        className="relative mt-3 flex-1 overflow-y-auto px-2 py-1 space-y-0.5"
+        initial="hidden"
+        animate="show"
+        variants={{
+          hidden: {},
+          show: { transition: { staggerChildren: 0.04, delayChildren: 0.08 } },
+        }}
+      >
+        {nav.primary.map((item) => (
+          <RailLink
+            key={item.href + item.label}
+            item={item}
+            collapsed={collapsed}
+            active={isActive(pathname, item.href)}
+            badge={item.badgeKey ? badges?.[item.badgeKey] : undefined}
+            onCommand={onCommand}
+          />
+        ))}
+      </m.nav>
+
+      {/* ── Footer cluster ────────────────────────────────────── */}
+      <div className="relative border-t border-white/8 p-2 space-y-0.5">
+        {nav.footer.map((item) => (
+          <RailLink
+            key={item.href + item.label}
+            item={item}
+            collapsed={collapsed}
+            active={isActive(pathname, item.href)}
+            onCommand={onCommand}
+            footer
+          />
+        ))}
+
+        {/* User chip */}
+        <m.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.18 }}
+          className={cn(
+            "mt-2 flex items-center gap-2.5 rounded-xl px-2 py-2",
+            "bg-white/4 border border-white/10",
+            "shadow-[inset_0_1px_0_hsl(0_0%_100%/0.06)]",
+            "hover:bg-white/8 transition-colors duration-180",
+          )}
+        >
+          <span
+            aria-hidden
+            className={cn(
+              "relative grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-semibold text-white",
+              "shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.18),0_4px_12px_-4px_hsl(189_92%_47%/0.6)]",
+            )}
+            style={{
+              background:
+                "linear-gradient(135deg, hsl(189 92% 47%) 0%, hsl(212 88% 48%) 60%, hsl(218 72% 22%) 100%)",
+            }}
+          >
+            {initials}
+          </span>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[12.5px] font-medium text-white/95 leading-tight">
+                {user.name || user.email}
+              </div>
+              <div className="truncate text-[11px] text-white/50 leading-tight">{user.email}</div>
+            </div>
+          )}
+        </m.div>
+      </div>
+    </aside>
+  );
+}
+
+/* ─── Rail link ─────────────────────────────────────────────── */
+
+function RailLink({
+  item,
+  collapsed,
+  active,
+  badge,
+  onCommand,
+  footer,
+}: {
+  item: RailItem;
+  collapsed: boolean;
+  active: boolean;
+  badge?: number;
+  onCommand?: (action: NonNullable<RailItem["action"]>) => void;
+  footer?: boolean;
+}) {
+  const Icon = ICONS[item.icon] ?? LayoutGrid;
+
+  const inner = (
+    <>
+      {/* Active accent bar */}
+      {active && (
+        <span
+          aria-hidden
+          className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-gradient-to-b from-cyan-300 to-cyan-500 shadow-[0_0_14px_hsl(189_92%_47%/0.8)]"
+        />
+      )}
+      {/* Cursor-tracked glare */}
+      <span
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-0 rounded-lg opacity-0 transition-opacity duration-280",
+          "group-hover:opacity-100",
+        )}
+        style={{
+          background:
+            "radial-gradient(120px 60px at var(--mx, 50%) var(--my, 50%), hsl(189 92% 60% / 0.16), transparent 70%)",
+        }}
+      />
+      <Icon
+        className={cn(
+          "relative h-[18px] w-[18px] shrink-0 transition-[color,transform] duration-180 ease-out-quart",
+          active ? "text-cyan-300" : "text-white/65 group-hover:text-white",
+          "group-hover:scale-110",
+        )}
+      />
+      {!collapsed && (
+        <span
+          className={cn(
+            "relative min-w-0 flex-1 truncate text-[13px] font-medium tracking-tight",
+            active ? "text-white" : "text-white/75 group-hover:text-white",
+          )}
+        >
+          {item.label}
+        </span>
+      )}
+      {!collapsed && item.hint && (
+        <span className="relative text-[10px] font-mono text-white/40 group-hover:text-white/65 px-1 py-0.5 rounded bg-white/5 border border-white/10">
+          {item.hint}
+        </span>
+      )}
+      {!collapsed && typeof badge === "number" && badge > 0 && (
+        <span className="relative ml-auto rounded-full bg-cyan-400/15 border border-cyan-300/30 text-cyan-200 text-[10px] font-semibold px-1.5 leading-[18px] min-w-[20px] text-center shadow-[0_0_10px_hsl(189_92%_47%/0.3)]">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
+    </>
+  );
+
+  const cls = cn(
+    "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 outline-none overflow-hidden",
+    "transition-[background-color,transform] duration-180 ease-out-quart",
+    active
+      ? "bg-white/10 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.08)]"
+      : "hover:bg-white/6",
+    "focus-visible:ring-2 focus-visible:ring-cyan-400/60 focus-visible:ring-offset-0",
+    collapsed && "justify-center px-2",
+    footer && "py-2",
+  );
+
+  // Track cursor for the glare effect
+  const trackCursor = (e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    e.currentTarget.style.setProperty("--mx", `${x}%`);
+    e.currentTarget.style.setProperty("--my", `${y}%`);
+  };
+
+  if (item.action && onCommand) {
+    return (
+      <m.button
+        type="button"
+        title={collapsed ? item.label : undefined}
+        onClick={() => onCommand(item.action!)}
+        onMouseMove={trackCursor}
+        className={cls}
+        variants={{
+          hidden: { opacity: 0, x: -8 },
+          show: { opacity: 1, x: 0, transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] } },
+        }}
+      >
+        {inner}
+      </m.button>
+    );
+  }
+
+  return (
+    <m.div
+      variants={{
+        hidden: { opacity: 0, x: -8 },
+        show: { opacity: 1, x: 0, transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] } },
+      }}
+    >
+      <Link
+        href={item.href}
+        className={cls}
+        onMouseMove={trackCursor}
+        title={collapsed ? item.label : undefined}
+      >
+        {inner}
+      </Link>
+    </m.div>
+  );
+}
+
+function isActive(pathname: string | null, href: string): boolean {
+  if (!pathname) return false;
+  // Strip query for comparison (rail items can encode `?view=` state).
+  const cleanHref = href.split("?")[0] || "/";
+  if (cleanHref === "/" || cleanHref === "/dashboard" || cleanHref === "/google" || cleanHref === "/partner" || cleanHref === "/admin") {
+    return pathname === cleanHref;
+  }
+  return pathname === cleanHref || pathname.startsWith(cleanHref + "/");
+}

@@ -1,0 +1,23 @@
+steps:
+  - id: pull-cache
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -c
+      - docker pull "${_CACHE_IMAGE}" || true
+  - id: build-image
+    name: gcr.io/cloud-builders/docker
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - --cache-from
+      - ${_CACHE_IMAGE}
+      - --build-arg
+      - BUILDKIT_INLINE_CACHE=1
+      - --tag
+      - ${_IMAGE_URI}
+      - .
+images:
+  - ${_IMAGE_URI}
+timeout: 1200s

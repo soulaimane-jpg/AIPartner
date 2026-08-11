@@ -1,0 +1,10 @@
+# Project-scoped override of the org's Domain Restricted Sharing policy
+# (constraints/iam.allowedPolicyMemberDomains). Setting allowAll on THIS
+# project lets us grant `allUsers` the Cloud Run invoker role so the app is
+# publicly reachable, while the organization-level restriction continues to
+# apply to every other project. Apply with:
+#   gcloud org-policies set-policy _deploy/allow-public-members.yaml
+name: projects/aipartner-starting-project/policies/iam.allowedPolicyMemberDomains
+spec:
+  rules:
+    - allowAll: true

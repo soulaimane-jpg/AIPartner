@@ -1,0 +1,5 @@
+name: aipartner-http-redirect
+defaultUrlRedirect:
+  httpsRedirect: true
+  redirectResponseCode: MOVED_PERMANENTLY_DEFAULT
+  stripQuery: false

@@ -1,0 +1,167 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { m } from "framer-motion";
+import { FolderOpen, FileStack, Sparkles, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+/**
+ * Hero strip rendered at the top of the customer workspace. Each tile
+ * is a clickable filter that updates the workspace search params.
+ */
+export function HeroStrip({
+  totals,
+  greeting,
+}: {
+  totals: { active: number; proposals: number; decisions: number };
+  greeting: string;
+}) {
+  const router = useRouter();
+  const sp = useSearchParams();
+  const activeFilter = sp.get("filter") ?? "all";
+
+  function setFilter(filter: string) {
+    const params = new URLSearchParams(sp.toString());
+    if (filter === "all") params.delete("filter");
+    else params.set("filter", filter);
+    router.replace(`/dashboard?${params.toString()}`);
+  }
+
+  return (
+    <section className="space-y-5">
+      <m.header
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-[28px] sm:text-[32px] leading-[1.1] font-semibold tracking-[-0.018em] text-foreground">
+            {greeting}
+          </h1>
+          <p className="mt-1.5 text-[14px] text-muted-foreground">
+            Scope cloud work, match partners, and track proposals.
+          </p>
+        </div>
+        <Button asChild size="default" className="shrink-0">
+          <Link href="/briefs/new">
+            <Plus className="h-4 w-4" />
+            New brief
+          </Link>
+        </Button>
+      </m.header>
+
+      <m.div
+        initial="hidden"
+        animate="show"
+        variants={{
+          hidden: {},
+          show: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } },
+        }}
+        className="grid gap-3 sm:grid-cols-3"
+      >
+        <Tile
+          tone="muted"
+          label="Active briefs"
+          value={totals.active}
+          icon={<FolderOpen className="h-4 w-4" />}
+          active={activeFilter === "active"}
+          onClick={() => setFilter(activeFilter === "active" ? "all" : "active")}
+        />
+        <Tile
+          tone="muted"
+          label="Proposals received"
+          value={totals.proposals}
+          icon={<FileStack className="h-4 w-4" />}
+          active={activeFilter === "proposals"}
+          onClick={() => setFilter(activeFilter === "proposals" ? "all" : "proposals")}
+        />
+        <Tile
+          tone="cyan"
+          label="Decisions due"
+          value={totals.decisions}
+          icon={<Sparkles className="h-4 w-4" />}
+          active={activeFilter === "decisions"}
+          onClick={() => setFilter(activeFilter === "decisions" ? "all" : "decisions")}
+          emphasize={totals.decisions > 0}
+        />
+      </m.div>
+    </section>
+  );
+}
+
+function Tile({
+  tone,
+  label,
+  value,
+  icon,
+  active,
+  onClick,
+  emphasize,
+}: {
+  tone: "muted" | "cyan";
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+  emphasize?: boolean;
+}) {
+  return (
+    <m.button
+      type="button"
+      onClick={onClick}
+      variants={{
+        hidden: { opacity: 0, y: 10 },
+        show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
+      }}
+      whileHover={{ y: -2 }}
+      transition={{ type: "spring", stiffness: 240, damping: 20 }}
+      className={cn(
+        "group relative text-left bg-white rounded-2xl border border-border p-5 overflow-hidden",
+        "shadow-elev-1 hover:shadow-elev-2 transition-[box-shadow,border-color] duration-180",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        active && "border-cyan-500/40 ring-1 ring-cyan-500/30",
+      )}
+    >
+      {/* Cyan accent strip when emphasised */}
+      {emphasize && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+        />
+      )}
+      <div className="flex items-center gap-4">
+        <div
+          className={cn(
+            "grid h-9 w-9 shrink-0 place-items-center rounded-lg",
+            tone === "cyan" || emphasize
+              ? "bg-cyan-500/10 text-cyan-600 ring-1 ring-cyan-500/20"
+              : "bg-secondary text-muted-foreground",
+          )}
+        >
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[12.5px] text-muted-foreground">{label}</div>
+          <div
+            className={cn(
+              "text-2xl font-semibold tracking-tight tabular-nums",
+              emphasize ? "text-cyan-600" : "text-foreground",
+            )}
+          >
+            {value}
+          </div>
+        </div>
+        <span
+          aria-hidden
+          className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/60 group-hover:text-foreground transition-colors"
+        >
+          {active ? "filter on" : "filter"}
+        </span>
+      </div>
+    </m.button>
+  );
+}

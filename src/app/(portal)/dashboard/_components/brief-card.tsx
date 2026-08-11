@@ -1,0 +1,123 @@
+"use client";
+
+import { Clock, FileText, AlertCircle, ArrowRight } from "lucide-react";
+import { m } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
+import { SERVICE_CATEGORIES_LABEL } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+import type { WorkspaceBrief } from "./types";
+
+/**
+ * Compact brief card used inside the Kanban board.
+ *
+ * Click anywhere on the card opens the brief drawer (parent passes
+ * `onClick`). The card itself is a plain motion.button so it stays a
+ * single tab stop and can be triggered by keyboard.
+ */
+export function BriefCard({
+  brief,
+  onClick,
+  index = 0,
+}: {
+  brief: WorkspaceBrief;
+  onClick: (brief: WorkspaceBrief) => void;
+  index?: number;
+}) {
+  const ageLabel = relativeAge(new Date(brief.updatedAt));
+  return (
+    <m.button
+      type="button"
+      onClick={() => onClick(brief)}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1], delay: index * 0.03 }}
+      whileHover={{ y: -1 }}
+      className={cn(
+        "group w-full text-left rounded-2xl bg-card border border-border p-3.5 space-y-2.5",
+        "shadow-elev-1 hover:shadow-elev-2 hover:border-border-strong",
+        "transition-[box-shadow,border-color,transform] duration-180 ease-out-quart",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40",
+      )}
+    >
+      {/* Action required ribbon */}
+      {brief.hasActionRequired && (
+        <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+          <AlertCircle className="h-3 w-3" />
+          Action required
+        </div>
+      )}
+
+      {/* Title + status */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-[13.5px] font-semibold text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+          {brief.title}
+        </div>
+        {brief.status === "DRAFT" && (
+          <Badge variant="muted" className="text-[10px] uppercase tracking-wider shrink-0">
+            Draft
+          </Badge>
+        )}
+      </div>
+
+      {/* Services */}
+      {brief.services.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {brief.services.slice(0, 2).map((s) => (
+            <span
+              key={s}
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-secondary/70 text-muted-foreground border border-border"
+            >
+              {SERVICE_CATEGORIES_LABEL[s] ?? s}
+            </span>
+          ))}
+          {brief.services.length > 2 && (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-secondary/40 text-muted-foreground">
+              +{brief.services.length - 2}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Footer meta */}
+      <div className="flex items-center justify-between text-[11.5px] text-muted-foreground gap-2">
+        <span className="inline-flex items-center gap-1 truncate">
+          <Clock className="h-3 w-3" />
+          {ageLabel}
+        </span>
+        <div className="inline-flex items-center gap-2">
+          {brief.proposalsCount > 0 && (
+            <span className="inline-flex items-center gap-1 text-primary font-medium">
+              <FileText className="h-3 w-3" />
+              {brief.proposalsCount}
+            </span>
+          )}
+          {brief.completion > 0 && (
+            <span className="inline-flex items-center gap-1 tabular-nums">
+              {brief.completion}%
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Hover affordance */}
+      <div className="flex items-center justify-end -mb-1 -mr-1 opacity-0 group-hover:opacity-100 transition-opacity duration-180">
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
+          Open <ArrowRight className="h-3 w-3" />
+        </span>
+      </div>
+    </m.button>
+  );
+}
+
+function relativeAge(d: Date): string {
+  const ms = Date.now() - d.getTime();
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
