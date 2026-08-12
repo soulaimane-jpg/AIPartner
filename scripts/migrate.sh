@@ -21,6 +21,17 @@
 #   ./scripts/migrate.sh                # apply pending migrations
 #   ./scripts/migrate.sh --dry-run      # list what would be applied
 #   ./scripts/migrate.sh --prod         # target production via the proxy
+#
+# WRITING A MIGRATION: do NOT put `BEGIN;` / `COMMIT;` in the file. Each file
+# is applied with `--single-transaction` (below), together with its tracking
+# row, so an explicit COMMIT ends that wrapper early and the tracking INSERT
+# then runs outside it — the file could commit without being recorded.
+# `20260812_timestamptz.sql` shipped with this mistake; it is left as-is
+# because editing an applied migration trips the checksum check above.
+# `tests/migrations.test.ts` now fails the build on it.
+#
+# Use `SET LOCAL` for per-migration settings (it scopes to the wrapper
+# transaction) and a DO block for control flow.
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
