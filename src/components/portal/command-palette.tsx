@@ -2,7 +2,7 @@
 
 import { Command } from "cmdk";
 import { useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Search,
   ArrowRight,
@@ -19,6 +19,7 @@ import {
   Activity,
   Trophy,
   BarChart3,
+  Loader2,
   type LucideIcon,
 } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -29,11 +30,26 @@ export type PaletteEntry = {
   id: string;
   label: string;
   hint?: string;
-  group: "Navigate" | "Actions" | "Recent" | "Switch view";
+  group: "Navigate" | "Actions" | "Recent" | "Switch view" | "Results";
   icon?: LucideIcon;
   /** Either a route to push or an action key. */
   href?: string;
   action?: "refer-customer" | "new-brief";
+};
+
+type SearchHit = {
+  id: string;
+  label: string;
+  hint?: string;
+  href: string;
+  group: "Brief" | "Lead" | "Partner" | "Person";
+};
+
+const RESULT_ICON: Record<SearchHit["group"], LucideIcon> = {
+  Brief: FolderKanban,
+  Lead: Users,
+  Partner: Users,
+  Person: Users,
 };
 
 /**
@@ -62,6 +78,54 @@ export function CommandPalette({
   onAction?: (action: NonNullable<PaletteEntry["action"]>) => void;
 }) {
   const router = useRouter();
+  const [term, setTerm] = useState("");
+  const [hits, setHits] = useState<SearchHit[]>([]);
+  const [searching, setSearching] = useState(false);
+  /** Guards against an earlier, slower response overwriting a later one. */
+  const requestSeq = useRef(0);
+
+  // Reset between openings so the previous query's results don't flash.
+  useEffect(() => {
+    if (!open) {
+      setTerm("");
+      setHits([]);
+      setSearching(false);
+    }
+  }, [open]);
+
+  // Debounced server search. The palette previously matched only its own
+  // static entries, so a brief title returned "No matches" despite the
+  // placeholder promising otherwise.
+  useEffect(() => {
+    const q = term.trim();
+    if (q.length < 2) {
+      setHits([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const seq = ++requestSeq.current;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, {
+          signal: controller.signal,
+        });
+        const data = (await res.json()) as { results?: SearchHit[] };
+        if (seq === requestSeq.current) setHits(data.results ?? []);
+      } catch {
+        // Aborted or offline — leave the last results in place rather than
+        // blanking the list mid-typing.
+      } finally {
+        if (seq === requestSeq.current) setSearching(false);
+      }
+    }, 180);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [term]);
 
   const navigate = useCallback(
     (href: string) => {
@@ -80,7 +144,30 @@ export function CommandPalette({
     [onAction, onOpenChange],
   );
 
-  const entries = buildEntries(role, recents);
+  // Filtering is done here rather than by cmdk (`shouldFilter={false}`) so
+  // that server hits — already matched by the database, sometimes on a field
+  // that isn't the visible label — are never filtered back out, while the
+  // static nav/action entries still narrow as you type.
+  const needle = term.trim().toLowerCase();
+  const staticEntries = buildEntries(role, recents).filter((e) =>
+    needle
+      ? `${e.label} ${e.hint ?? ""}`.toLowerCase().includes(needle)
+      : true,
+  );
+
+  const entries: PaletteEntry[] = [
+    // Server hits first — someone who types is usually looking for a thing,
+    // not a nav link.
+    ...hits.map<PaletteEntry>((h) => ({
+      id: `hit:${h.group}:${h.id}`,
+      label: h.label,
+      hint: h.hint ?? h.group,
+      group: "Results",
+      icon: RESULT_ICON[h.group],
+      href: h.href,
+    })),
+    ...staticEntries,
+  ];
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -115,29 +202,46 @@ export function CommandPalette({
           <Command
             label="Command palette"
             className="relative"
-            filter={(value, search) => {
-              if (!search) return 1;
-              return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
-            }}
+            shouldFilter={false}
           >
             <div className="flex items-center gap-2.5 px-5 h-14 border-b border-border bg-surface-2">
               <Search className="h-4 w-4 text-muted-foreground shrink-0" strokeWidth={1.75} />
               <Command.Input
                 autoFocus
-                placeholder="Search briefs, partners, actions…"
+                value={term}
+                onValueChange={setTerm}
+                placeholder={
+                  role === "GOOGLER"
+                    ? "Search leads, actions…"
+                    : role === "ADMIN"
+                      ? "Search briefs, partners, people…"
+                      : "Search your briefs, actions…"
+                }
                 className="flex-1 bg-transparent outline-none text-[14.5px] text-foreground placeholder:text-muted-foreground font-ui"
               />
+              {searching && (
+                <Loader2
+                  className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground"
+                  aria-label="Searching"
+                />
+              )}
               <kbd className="hidden sm:inline-flex items-center text-[10px] font-mono px-1.5 py-0.5 rounded border border-border bg-card text-muted-foreground">
                 ESC
               </kbd>
             </div>
 
             <Command.List className="max-h-[400px] overflow-y-auto p-2">
-              <Command.Empty className="px-3 py-8 text-center text-[13px] text-muted-foreground">
-                No matches.
-              </Command.Empty>
+              {entries.length === 0 && (
+                <div className="px-3 py-8 text-center text-[13px] text-muted-foreground">
+                  {searching
+                    ? "Searching…"
+                    : needle.length === 1
+                      ? "Keep typing to search…"
+                      : `No matches for “${term.trim()}”.`}
+                </div>
+              )}
 
-              {(["Recent", "Navigate", "Actions", "Switch view"] as const).map((group) => {
+              {(["Results", "Recent", "Navigate", "Actions", "Switch view"] as const).map((group) => {
                 const items = entries.filter((e) => e.group === group);
                 if (items.length === 0) return null;
                 return (

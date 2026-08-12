@@ -30,6 +30,21 @@ export default async function BriefBuilderPage({
   );
   if (!capabilities.canEditBrief) notFound();
 
+  // The customer's own chat turns should carry their face, not a generic
+  // glyph. Read from the User row rather than the session so a freshly
+  // uploaded picture appears without re-logging in. Avatars stored in GCS
+  // are served through the signed-URL route, the same swap PortalShell does.
+  const me = await queryOne<{ name: string | null; email: string; image: string | null }>(
+    'SELECT "name", "email", "image" FROM "User" WHERE "id" = $1',
+    [session.user.id],
+  );
+  const viewer = {
+    name: me?.name || me?.email || session.user.email || "You",
+    image: me?.image?.startsWith("gcs:")
+      ? "/api/account/avatar"
+      : (me?.image ?? null),
+  };
+
   const brief = await queryOne<
     ProjectBriefRow & { proposalsCount: number; sourcedCount: number }
   >(
@@ -65,6 +80,7 @@ export default async function BriefBuilderPage({
           sections={computeCompletionBreakdown(brief).sections}
           initialMessages={messages}
           previewHref={`/briefs/${id}/preview`}
+          viewer={viewer}
         />
       </div>
     </div>

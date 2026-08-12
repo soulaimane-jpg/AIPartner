@@ -18,6 +18,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Avatar as UserAvatar } from "@/components/ui/avatar";
 import { ExampleAnswerCard } from "@/components/brief/example-answer-card";
 import { findExampleForAssistantMessage } from "@/lib/example-answers";
 import { BriefAttachments } from "@/components/brief/brief-attachments";
@@ -56,6 +57,12 @@ type Section = {
   missing: string[];
 };
 
+/** The signed-in person, so their own messages carry their real face. */
+export type ChatViewer = {
+  name: string;
+  image: string | null;
+};
+
 export const BriefChat = forwardRef<
   BriefChatHandle,
   {
@@ -65,9 +72,17 @@ export const BriefChat = forwardRef<
     completion?: number;
     /** Slot rendered at the right edge of the chat header (toolbar). */
     headerActions?: React.ReactNode;
+    viewer?: ChatViewer;
   }
 >(function BriefChat(
-  { briefId, initialMessages, sections = [], completion = 0, headerActions },
+  {
+    briefId,
+    initialMessages,
+    sections = [],
+    completion = 0,
+    headerActions,
+    viewer,
+  },
   ref,
 ) {
   const router = useRouter();
@@ -220,7 +235,7 @@ export const BriefChat = forwardRef<
           ) : (
             <div className="space-y-6">
               {messages.map((m) => (
-                <MessageBubble key={m.id} message={m} />
+                <MessageBubble key={m.id} message={m} viewer={viewer} />
               ))}
               {streaming && <StreamingBubble text={streamingText} />}
               <div ref={endRef} className="h-4" />
@@ -333,7 +348,13 @@ function EmptyState({ onPick }: { onPick: (t: string) => void }) {
   );
 }
 
-function MessageBubble({ message }: { message: Message }) {
+function MessageBubble({
+  message,
+  viewer,
+}: {
+  message: Message;
+  viewer?: ChatViewer;
+}) {
   const isUser = message.role === "user";
   const rating = parseRating(message.meta);
   // For assistant messages, surface an inline "show me a great answer"
@@ -346,7 +367,7 @@ function MessageBubble({ message }: { message: Message }) {
         isUser && "flex-row-reverse",
       )}
     >
-      <Avatar isUser={isUser} />
+      <ChatAvatar isUser={isUser} viewer={viewer} />
       <div
         className={cn(
           "flex flex-col max-w-[85%] min-w-0",
@@ -428,7 +449,7 @@ function AnswerRatingChip({ rating }: { rating: AnswerRating }) {
 function StreamingBubble({ text }: { text: string }) {
   return (
     <div className="flex items-start gap-3 animate-in fade-in duration-300">
-      <Avatar isUser={false} />
+      <ChatAvatar isUser={false} />
       <div className="min-w-0 max-w-[85%] rounded-xl rounded-tl-sm border border-border bg-card px-4 py-3 text-[14px] leading-relaxed text-foreground shadow-elev-1">
         {text ? (
           <FormattedContent text={text} />
@@ -469,16 +490,39 @@ function AssistantMark({ size }: { size: "sm" | "md" | "lg" }) {
   );
 }
 
-function Avatar({ isUser }: { isUser: boolean }) {
-  if (isUser) {
+/**
+ * Message avatar.
+ *
+ * The customer's own turns used to render a generic person glyph even
+ * though we have their profile picture. `UserAvatar` falls back to their
+ * initials on a deterministic colour when there's no image, so it is never
+ * the anonymous outline.
+ */
+function ChatAvatar({
+  isUser,
+  viewer,
+}: {
+  isUser: boolean;
+  viewer?: ChatViewer;
+}) {
+  if (!isUser) return <AssistantMark size="sm" />;
+
+  if (viewer) {
     return (
-      <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground border border-border mt-1">
-        <UserIcon className="h-3.5 w-3.5" />
-      </div>
+      <UserAvatar
+        name={viewer.name}
+        src={viewer.image}
+        size="sm"
+        className="mt-1 ring-1 ring-border"
+      />
     );
   }
+
+  // No session data passed (e.g. a preview surface) — keep the old glyph.
   return (
-    <AssistantMark size="sm" />
+    <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground border border-border mt-1">
+      <UserIcon className="h-3.5 w-3.5" />
+    </div>
   );
 }
 

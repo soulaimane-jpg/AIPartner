@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useRef } from "react";
 import { ArrowRight, CheckCircle2, CircleDashed, FileText, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BriefChat, type BriefChatHandle } from "@/components/brief-chat";
+import {
+  BriefChat,
+  type BriefChatHandle,
+  type ChatViewer,
+} from "@/components/brief-chat";
 import { BriefFeedbackPanel } from "@/components/brief-feedback-panel";
 import { SowExamplesDrawer } from "@/components/sow-examples-drawer";
 import type { CompletionSection } from "@/lib/brief";
@@ -24,12 +28,14 @@ export function BriefBuilderClient({
   sections,
   initialMessages,
   previewHref,
+  viewer,
 }: {
   briefId: string;
   completion: number;
   sections: CompletionSection[];
   initialMessages: Msg[];
   previewHref: string;
+  viewer?: ChatViewer;
 }) {
   const chatRef = useRef<BriefChatHandle>(null);
   const completeSections = sections.filter((section) => section.weight > 0 && section.score >= section.weight).length;
@@ -59,6 +65,7 @@ export function BriefBuilderClient({
           initialMessages={initialMessages}
           sections={sections}
           completion={completion}
+          viewer={viewer}
           headerActions={
             <>
               <SowExamplesDrawer triggerLabel="Examples" triggerVariant="ghost" />
