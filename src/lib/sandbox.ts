@@ -68,6 +68,7 @@ export async function bootSandbox(opts: {
     ownerId: user.id,
     companyId: company.id,
     stage: "REVIEW",
+    leadState: "SENT_TO_PARTNERS",
     status: "ACTIVE",
     completion: 80,
     services: JSON.stringify(["data", "analytics", "migration"]),

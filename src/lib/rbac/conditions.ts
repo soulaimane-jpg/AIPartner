@@ -11,7 +11,10 @@
  * route-level caching (RSC dedupe) handles repeats in the same request.
  */
 
+import { cookies } from "next/headers";
 import { queryOne } from "@/lib/db";
+import { getMfaStatus } from "@/lib/mfa";
+import { isMfaFresh } from "@/lib/sessions";
 import { getBriefCapabilities } from "@/lib/workspace-access";
 import type { ConditionKey } from "./matrix";
 import type { ActionContext } from "./types";
@@ -123,16 +126,47 @@ const conditions: Record<
   },
 
   /**
-   * Sensitive-action gate: a `SecondaryApproval` row exists, is
-   * approved, hasn't expired, and references the resource at hand.
-   * Today this returns `false` until that model lands; admins can
-   * bypass via a feature flag in dev.
+   * Sensitive-action gate (today: `tenant.delete` only).
+   *
+   * Requires a *fresh MFA verification* on the caller's session rather
+   * than a separate approval model: the step-up engine already gives
+   * us a time-boxed, audited second factor, and a permanently-`false`
+   * condition made the permission unreachable — which reads as "safe"
+   * but really means the feature silently does not exist.
+   *
+   * Callers that need a second *person* (rather than a second factor)
+   * should require an explicit approver record in their handler; this
+   * condition intentionally covers step-up only.
    */
-  secondaryApproval: () => {
-    // TODO: Wire to SecondaryApproval model in Phase 2 of Track C.
-    return false;
+  secondaryApproval: async (ctx) => {
+    if (!ctx.user?.id) return false;
+    const token = await readSessionTokenForRbac();
+    if (!token) return false;
+    const status = await getMfaStatus(ctx.user.id);
+    // Not enrolled → cannot satisfy a second-factor gate.
+    if (!status.enabled) return false;
+    return isMfaFresh(token, STEP_UP_WINDOW_SEC);
   },
 };
+
+/** Match `requireStepUp`'s default window so both gates agree. */
+const STEP_UP_WINDOW_SEC = 5 * 60;
+
+const AUTH_COOKIE_NAMES = [
+  "authjs.session-token",
+  "__Secure-authjs.session-token",
+  "next-auth.session-token",
+  "__Secure-next-auth.session-token",
+];
+
+async function readSessionTokenForRbac(): Promise<string | null> {
+  const jar = await cookies();
+  for (const name of AUTH_COOKIE_NAMES) {
+    const v = jar.get(name)?.value;
+    if (v) return v;
+  }
+  return null;
+}
 
 function pickId(payload: Payload, ...keys: string[]): string | null {
   for (const k of keys) {

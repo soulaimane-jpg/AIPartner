@@ -19,8 +19,8 @@ export function ExampleAnswerCard({ example }: { example: ExampleAnswer }) {
         type="button"
         onClick={() => setOpen((s) => !s)}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1",
-          "text-[11.5px] font-semibold text-amber-900 hover:bg-amber-100 transition-colors",
+          "inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1",
+          "text-[11.5px] font-semibold text-primary hover:bg-primary/10 transition-colors",
         )}
         aria-expanded={open}
       >
@@ -35,27 +35,27 @@ export function ExampleAnswerCard({ example }: { example: ExampleAnswer }) {
       </button>
 
       {open && (
-        <div className="mt-2 rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-3.5 space-y-3">
+        <div className="mt-2 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-card p-3.5 space-y-3">
           <div>
-            <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-amber-900/80">
+            <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-primary">
               <Sparkles className="h-3 w-3" />
               {example.label}
             </div>
-            <p className="mt-1.5 text-[13px] text-slate-800 leading-relaxed">
+            <p className="mt-1.5 text-[13px] text-foreground leading-relaxed">
               {example.exemplar}
             </p>
           </div>
-          <div className="rounded-lg bg-card border border-amber-100 p-2.5">
-            <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1.5">
+          <div className="rounded-lg bg-card border border-primary/10 p-2.5">
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1.5">
               Why this works
             </div>
             <ul className="space-y-1">
               {example.whyItsGood.map((w, i) => (
                 <li
                   key={i}
-                  className="flex items-start gap-1.5 text-[12px] text-slate-700"
+                  className="flex items-start gap-1.5 text-[12px] text-foreground/80"
                 >
-                  <span className="text-amber-500 mt-0.5">•</span>
+                  <span className="text-primary mt-0.5">•</span>
                   <span>{w}</span>
                 </li>
               ))}

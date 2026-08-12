@@ -7,6 +7,10 @@ import {
   ShortlistCompare,
   type ShortlistCard,
 } from "@/components/brief/shortlist-compare";
+import {
+  isPartnerRevealed,
+  serializeCompanyFacingShortlistCard,
+} from "@/lib/serializers/firewall";
 import { safeJsonParse } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +25,12 @@ export default async function BriefShortlistPage({
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/sign-in");
 
-  const brief = await queryOne<{ id: string; title: string }>(
-    'SELECT "id", "title" FROM "ProjectBrief" WHERE "id" = $1 AND "ownerId" = $2',
+  const brief = await queryOne<{
+    id: string;
+    title: string;
+    leadState: string;
+  }>(
+    'SELECT "id", "title", "leadState" FROM "ProjectBrief" WHERE "id" = $1 AND "ownerId" = $2',
     [id, session.user.id],
   );
   if (!brief) notFound();
@@ -30,12 +38,14 @@ export default async function BriefShortlistPage({
   const matches = await query<{
     id: string;
     status: string;
+    placeholderLabel: string | null;
     acceptedTermsAt: Date | null;
     customerPriority: number | null;
     partnerName: string;
     tagline: string | null;
     headquarters: string | null;
     officeLocations: string | null;
+    regions: string | null;
     languages: string | null;
     specializations: string | null;
     expertiseAreas: string | null;
@@ -44,9 +54,9 @@ export default async function BriefShortlistPage({
     tier: string | null;
     certifications: string | null;
   }>(
-    `SELECT m."id", m."status", m."acceptedTermsAt", m."customerPriority",
+    `SELECT m."id", m."status", m."placeholderLabel", m."acceptedTermsAt", m."customerPriority",
             c."name" AS "partnerName",
-            pp."tagline", pp."headquarters", pp."officeLocations", pp."languages",
+            pp."tagline", pp."headquarters", pp."officeLocations", pp."regions", pp."languages",
             pp."specializations", pp."expertiseAreas", pp."caseStudies",
             pp."gcpTier", pp."tier", pp."certifications"
      FROM "Match" m
@@ -57,6 +67,8 @@ export default async function BriefShortlistPage({
     [id],
   );
 
+  // Identity firewall (§8): the customer compares capability only until
+  // the reveal event fires for the partner they selected.
   const cards: ShortlistCard[] = matches
     .filter((m) =>
       [
@@ -67,26 +79,42 @@ export default async function BriefShortlistPage({
         "PARTNER_DECLINED",
       ].includes(m.status),
     )
-    .map((m) => ({
-      matchId: m.id,
-      partnerName: m.partnerName,
-      partnerTagline: m.tagline ?? null,
-      status: m.status as ShortlistCard["status"],
-      acceptedAt: m.acceptedTermsAt?.toISOString() ?? null,
-      customerPriority: m.customerPriority,
-      headquarters: m.headquarters ?? null,
-      officeLocations: safeJsonParse<string[]>(m.officeLocations ?? "[]", []),
-      languages: safeJsonParse<string[]>(m.languages ?? "[]", []),
-      specializations: safeJsonParse<string[]>(m.specializations ?? "[]", []),
-      expertiseAreas: safeJsonParse<string[]>(m.expertiseAreas ?? "[]", []),
-      caseStudies: safeJsonParse<
-        { title: string; industry?: string; summary?: string; link?: string }[]
-      >(m.caseStudies ?? "[]", []),
-      gcpTier: m.gcpTier ?? m.tier ?? null,
-      certifications: safeJsonParse<
-        { name: string; count?: number; level?: string }[]
-      >(m.certifications ?? "[]", []),
-    }));
+    .map((m, index) => {
+      const revealed = isPartnerRevealed({
+        leadState: brief!.leadState,
+        matchStatus: m.status,
+      });
+      const card = serializeCompanyFacingShortlistCard(
+        {
+          match: {
+            id: m.id,
+            status: m.status,
+            placeholderLabel: m.placeholderLabel,
+            acceptedTermsAt: m.acceptedTermsAt,
+            customerPriority: m.customerPriority,
+          },
+          partner: { name: m.partnerName, tagline: m.tagline },
+          profile: {
+            headquarters: m.headquarters,
+            officeLocations: safeJsonParse<string[]>(m.officeLocations ?? "[]", []),
+            regions: safeJsonParse<string[]>(m.regions ?? "[]", []),
+            languages: safeJsonParse<string[]>(m.languages ?? "[]", []),
+            specializations: safeJsonParse<string[]>(m.specializations ?? "[]", []),
+            expertiseAreas: safeJsonParse<string[]>(m.expertiseAreas ?? "[]", []),
+            gcpTier: m.gcpTier ?? m.tier ?? null,
+            certifications: safeJsonParse<
+              { name: string; count?: number; level?: string }[]
+            >(m.certifications ?? "[]", []),
+            caseStudies: safeJsonParse<
+              { title: string; industry?: string; summary?: string; link?: string }[]
+            >(m.caseStudies ?? "[]", []),
+          },
+          fallbackIndex: index,
+        },
+        { revealed },
+      );
+      return { ...card, status: card.status as ShortlistCard["status"] };
+    });
 
   if (cards.length === 0) {
     return (

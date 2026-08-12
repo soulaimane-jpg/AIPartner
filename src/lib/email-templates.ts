@@ -153,5 +153,41 @@ your current password will keep working and nothing has changed.
   return { subject, body };
 }
 
+// ── Email verification ────────────────────────────────────────────
+
+export type EmailVerificationVars = {
+  /** Display name when we have one, otherwise the email local part. */
+  recipientName: string;
+  verificationUrl: string;
+  /** How long the link stays valid, e.g. "48 hours". */
+  expiresIn: string;
+};
+
+/**
+ * Plain-text email-confirmation message sent on credentials signup.
+ * Confirming ownership is what stops someone registering as
+ * `someone@bigcorp.com` and receiving that company's briefs.
+ */
+export function renderEmailVerificationEmail(vars: EmailVerificationVars): {
+  subject: string;
+  body: string;
+} {
+  const subject = "Confirm your email for AI Partner";
+  const body = `Hi ${vars.recipientName},
+
+Please confirm this email address so we know it belongs to you:
+
+  ${vars.verificationUrl}
+
+This link expires in ${vars.expiresIn} and can only be used once.
+
+If you didn't create an AI Partner account you can safely ignore this
+email — the account stays unconfirmed and no data is shared with it.
+
+— AI Partner
+`;
+  return { subject, body };
+}
+
 // `sendOutreachEmail` moved to `@/lib/email/outreach` (server-only) so
 // this module stays client-safe.

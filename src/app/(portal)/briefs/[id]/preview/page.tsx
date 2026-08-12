@@ -66,22 +66,20 @@ export default async function BriefPreviewPage({
   );
   if (!brief) notFound();
 
-  const matches = await query<{
-    id: string;
-    status: string;
-    partnerName: string;
-    tagline: string | null;
-    specializations: string | null;
+  // Counts only — this page never renders partner identity, and
+  // selecting it would put identifying columns one JSX line away from
+  // a pre-reveal leak (§8).
+  const matchCounts = await queryOne<{
+    total: number;
+    sourced: number;
   }>(
-    `SELECT m."id", m."status", c."name" AS "partnerName",
-            pp."tagline", pp."specializations"
-     FROM "Match" m
-     JOIN "Company" c ON c."id" = m."partnerId"
-     LEFT JOIN "PartnerProfile" pp ON pp."companyId" = c."id"
-     WHERE m."briefId" = $1
-     ORDER BY m."createdAt" DESC`,
+    `SELECT COUNT(*)::int AS "total",
+            COUNT(*) FILTER (WHERE "status" = 'SOURCED')::int AS "sourced"
+     FROM "Match" WHERE "briefId" = $1`,
     [id],
   );
+  const totalMatches = matchCounts?.total ?? 0;
+  const sourcedMatches = matchCounts?.sourced ?? 0;
 
   const collaborators = await query<BriefCollaboratorRow>(
     `SELECT * FROM "BriefCollaborator"
@@ -173,11 +171,11 @@ export default async function BriefPreviewPage({
         status={brief.status as BriefStatus}
         completion={brief.completion}
         proposalsCount={brief.proposalsCount}
-        hasMatches={matches.some((m) => m.status === "SOURCED")}
+        hasMatches={sourcedMatches > 0}
       />
 
       {/* Waiting for proposals — shown when partners have been invited */}
-      {brief.stage === "PROPOSALS" && matches.length > 0 && (
+      {brief.stage === "PROPOSALS" && totalMatches > 0 && (
         <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/5 px-5 py-4 flex items-center gap-3">
           <Clock className="h-5 w-5 text-primary shrink-0" />
           <div>
@@ -185,7 +183,7 @@ export default async function BriefPreviewPage({
               Waiting for proposals
             </p>
             <p className="text-[12.5px] text-primary mt-0.5">
-              {matches.length} partner{matches.length === 1 ? "" : "s"} received your brief. You&apos;ll be notified when proposals arrive.
+              {totalMatches} partner{totalMatches === 1 ? "" : "s"} received your brief. You&apos;ll be notified when proposals arrive.
             </p>
           </div>
         </div>

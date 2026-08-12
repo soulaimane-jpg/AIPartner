@@ -36,7 +36,7 @@ export function BriefCard({
         "group w-full text-left rounded-2xl bg-card border border-border p-3.5 space-y-2.5",
         "shadow-elev-1 hover:shadow-elev-2 hover:border-border-strong",
         "transition-[box-shadow,border-color,transform] duration-180 ease-out-quart",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
       )}
     >
       {/* Action required ribbon */}

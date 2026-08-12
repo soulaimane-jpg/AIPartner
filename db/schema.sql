@@ -55,6 +55,14 @@ CREATE TABLE "Company" (
     "kind" TEXT NOT NULL,
     "website" TEXT,
     "industry" TEXT,
+    -- PENDING | APPROVED | REJECTED — partners may not be sourced or
+    -- invited until an admin approves them.
+    "verificationStatus" TEXT NOT NULL DEFAULT 'PENDING',
+    "verifiedAt" TIMESTAMP(3),
+    "verifiedById" TEXT,
+    "rejectionReason" TEXT,
+    "domainVerifiedAt" TIMESTAMP(3),
+    "signupEmailDomain" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -621,6 +629,98 @@ CREATE TABLE "PasswordResetToken" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "PasswordResetToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Engagement" (
+    "id" TEXT NOT NULL,
+    "briefId" TEXT NOT NULL,
+    "matchId" TEXT NOT NULL,
+    "proposalId" TEXT,
+    "partnerId" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDING_ACCEPTANCE',
+    "acceptedScope" TEXT,
+    "contractValueCents" BIGINT,
+    "currency" TEXT NOT NULL DEFAULT 'EUR',
+    "startDate" TIMESTAMP(3),
+    "durationMonths" INTEGER,
+    "feeModel" TEXT,
+    "feeBps" INTEGER,
+    "feeAmountCents" BIGINT,
+    "acceptedAt" TIMESTAMP(3),
+    "acceptedById" TEXT,
+    "acceptedByName" TEXT,
+    "acceptedIp" TEXT,
+    "acceptedUa" TEXT,
+    "deliveredAt" TIMESTAMP(3),
+    "cancelledAt" TIMESTAMP(3),
+    "cancelReason" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Engagement_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "EngagementMilestone" (
+    "id" TEXT NOT NULL,
+    "engagementId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT,
+    "dueDate" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "completedAt" TIMESTAMP(3),
+    "rank" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "EngagementMilestone_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "WorkspaceJoinRequest" (
+    "id" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "requesterId" TEXT NOT NULL,
+    "requesterCompanyId" TEXT,
+    "emailDomain" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "resolvedById" TEXT,
+    "resolvedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "WorkspaceJoinRequest_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CronRun" (
+    "job" TEXT NOT NULL,
+    "lastStartedAt" TIMESTAMP(3),
+    "lastSuccessAt" TIMESTAMP(3),
+    "lastFailureAt" TIMESTAMP(3),
+    "lastDurationMs" INTEGER,
+    "lastError" TEXT,
+    "consecutiveFailures" INTEGER NOT NULL DEFAULT 0,
+    "totalRuns" BIGINT NOT NULL DEFAULT 0,
+    "expectedIntervalMinutes" INTEGER,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CronRun_pkey" PRIMARY KEY ("job")
+);
+
+-- CreateTable
+CREATE TABLE "EmailVerificationToken" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "tokenHash" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "usedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "EmailVerificationToken_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable

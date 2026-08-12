@@ -24,7 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BRIEF_STAGES, type BriefStage } from "@/lib/enums";
+import { LEAD_STATES, type LeadState } from "@/lib/enums";
+import { LEAD_STATE_LABELS } from "@/lib/constants";
 import {
   bulkTriageBriefsAction,
   bulkChangeStageAction,
@@ -78,18 +79,26 @@ export function BulkActionBar({
     });
   }
 
-  function changeStage(stage: BriefStage) {
+  function changeStage(leadState: LeadState) {
     startTransition(async () => {
       const result = await bulkChangeStageAction({
         briefIds: selectedIds,
-        stage,
+        leadState,
       });
-      if (result.ok) {
-        toast.success(`Moved ${result.data.count} → ${stage}`);
-        refresh();
-      } else {
+      if (!result.ok) {
         toast.error("Could not move");
+        return;
       }
+      const moved = result.data.count;
+      const skipped = selectedIds.length - moved;
+      // Briefs that can't legally make the hop are skipped rather than
+      // force-written, so say so instead of implying they all moved.
+      toast.success(
+        skipped > 0
+          ? `Moved ${moved} → ${LEAD_STATE_LABELS[leadState] ?? leadState} (${skipped} skipped — illegal transition)`
+          : `Moved ${moved} → ${LEAD_STATE_LABELS[leadState] ?? leadState}`,
+      );
+      refresh();
     });
   }
 
@@ -114,7 +123,7 @@ export function BulkActionBar({
       </Button>
 
       <Select
-        onValueChange={(v) => changeStage(v as BriefStage)}
+        onValueChange={(v) => changeStage(v as LeadState)}
         disabled={pending}
       >
         <SelectTrigger className="h-8 w-[140px]">
@@ -122,9 +131,9 @@ export function BulkActionBar({
           <SelectValue placeholder="Move to…" />
         </SelectTrigger>
         <SelectContent>
-          {BRIEF_STAGES.map((s) => (
+          {LEAD_STATES.map((s) => (
             <SelectItem key={s} value={s}>
-              {s}
+              {LEAD_STATE_LABELS[s] ?? s}
             </SelectItem>
           ))}
         </SelectContent>

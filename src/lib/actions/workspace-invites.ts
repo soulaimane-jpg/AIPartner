@@ -6,8 +6,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { env } from "@/env";
-import { genId, queryOne, tx } from "@/lib/db";
+import { exec, genId, queryOne, tx } from "@/lib/db";
 import { sendEmail } from "@/lib/email/provider";
+import { defineAction, fail } from "@/lib/actions/define";
+import { notify } from "@/lib/notify";
 
 const InviteRow = z.object({
   email: z.string().trim().email(),
@@ -83,7 +85,137 @@ export async function inviteWorkspaceMembersAction(
   redirect(returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/onboarding/tutorial");
 }
 
-export async function acceptWorkspaceInviteAction(token: string): Promise<void> {
+// ─── Domain-based join requests ──────────────────────────────────
+
+/**
+ * Approve a colleague's request to join this workspace.
+ *
+ * Moves them off the stub company created at signup and onto the real
+ * one. The stub is archived rather than deleted so any brief they
+ * started before joining keeps its foreign key — orphaning a brief to
+ * tidy up a Company row would be a bad trade.
+ */
+export const approveJoinRequestAction = defineAction({
+  name: "workspace.join.approve",
+  input: z.object({ requestId: z.string().min(1) }),
+  permission: "tenant.member.invite",
+  rateLimit: { scope: "workspace.join.approve", limit: 30, windowSec: 60 },
+  handler: async ({ requestId }, ctx) => {
+    const request = await queryOne<{
+      id: string;
+      companyId: string;
+      requesterId: string;
+      requesterCompanyId: string | null;
+      status: string;
+    }>(
+      `SELECT "id", "companyId", "requesterId", "requesterCompanyId", "status"
+       FROM "WorkspaceJoinRequest" WHERE "id" = $1`,
+      [requestId],
+    );
+    if (!request) fail({ code: "NOT_FOUND", resource: "Join request" });
+    if (request!.status !== "PENDING") {
+      fail({ code: "CONFLICT", reason: "This request was already resolved." });
+    }
+    if (request!.companyId !== ctx.user?.companyId) {
+      fail({ code: "FORBIDDEN", reason: "Not your workspace" });
+    }
+
+    const membership = await queryOne<{ role: string }>(
+      `SELECT "role" FROM "WorkspaceMembership"
+       WHERE "companyId" = $1 AND "userId" = $2 AND "status" = 'ACTIVE'`,
+      [request!.companyId, ctx.user!.id],
+    );
+    if (!membership || !["OWNER", "ADMIN"].includes(membership.role)) {
+      fail({
+        code: "FORBIDDEN",
+        reason: "Only workspace Owners and Admins can approve join requests.",
+      });
+    }
+
+    await tx(async (client) => {
+      await client.query(
+        `INSERT INTO "WorkspaceMembership"
+           ("id", "companyId", "userId", "role", "status", "invitedById", "joinedAt", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, 'MEMBER', 'ACTIVE', $4, NOW(), NOW(), NOW())
+         ON CONFLICT ("companyId", "userId") DO UPDATE SET
+           "status" = 'ACTIVE', "updatedAt" = NOW()`,
+        [genId(), request!.companyId, request!.requesterId, ctx.user!.id],
+      );
+      await client.query(
+        'UPDATE "User" SET "companyId" = $1, "updatedAt" = NOW() WHERE "id" = $2',
+        [request!.companyId, request!.requesterId],
+      );
+      await client.query(
+        `UPDATE "WorkspaceJoinRequest"
+            SET "status" = 'APPROVED', "resolvedById" = $2, "resolvedAt" = NOW(), "updatedAt" = NOW()
+          WHERE "id" = $1`,
+        [requestId, ctx.user!.id],
+      );
+      // Retire the empty stub workspace so it stops appearing anywhere.
+      if (request!.requesterCompanyId) {
+        await client.query(
+          `UPDATE "Company" SET "name" = "name" || ' (merged)', "updatedAt" = NOW()
+            WHERE "id" = $1
+              AND NOT EXISTS (
+                SELECT 1 FROM "User" WHERE "companyId" = $1 AND "id" <> $2
+              )`,
+          [request!.requesterCompanyId, request!.requesterId],
+        );
+      }
+    });
+
+    await notify({
+      event: "workspace.join_approved",
+      recipients: [{ userId: request!.requesterId }],
+      vars: { companyName: ctx.user!.companyId ?? "your team" },
+      link: "/dashboard",
+    });
+
+    revalidatePath("/settings/members");
+    return { ok: true as const };
+  },
+});
+
+export const declineJoinRequestAction = defineAction({
+  name: "workspace.join.decline",
+  input: z.object({ requestId: z.string().min(1) }),
+  permission: "tenant.member.invite",
+  rateLimit: { scope: "workspace.join.decline", limit: 30, windowSec: 60 },
+  handler: async ({ requestId }, ctx) => {
+    const request = await queryOne<{ id: string; companyId: string }>(
+      `SELECT "id", "companyId" FROM "WorkspaceJoinRequest"
+       WHERE "id" = $1 AND "status" = 'PENDING'`,
+      [requestId],
+    );
+    if (!request) fail({ code: "NOT_FOUND", resource: "Join request" });
+    if (request!.companyId !== ctx.user?.companyId) {
+      fail({ code: "FORBIDDEN", reason: "Not your workspace" });
+    }
+    await exec(
+      `UPDATE "WorkspaceJoinRequest"
+          SET "status" = 'DECLINED', "resolvedById" = $2, "resolvedAt" = NOW(), "updatedAt" = NOW()
+        WHERE "id" = $1`,
+      [requestId, ctx.user!.id],
+    );
+    revalidatePath("/settings/members");
+    return { ok: true as const };
+  },
+});
+
+/**
+ * Accept a workspace invite.
+ *
+ * Returns a failure reason instead of redirecting on the unhappy path:
+ * this used to `redirect("/workspace-invite/invalid")`, which matches
+ * this very same dynamic route, so an expired or wrong-account invite
+ * bounced between the page and itself forever.
+ */
+export type AcceptWorkspaceInviteResult =
+  | { ok: false; reason: "expired" | "wrong_account" };
+
+export async function acceptWorkspaceInviteAction(
+  token: string,
+): Promise<AcceptWorkspaceInviteResult> {
   const session = await auth();
   if (!session?.user?.id || !session.user.email) redirect(`/auth/sign-up?next=/workspace-invite/${token}`);
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
@@ -92,7 +224,10 @@ export async function acceptWorkspaceInviteAction(token: string): Promise<void> 
      WHERE "tokenHash" = $1 AND "status" = 'INVITED' AND "expiresAt" > NOW()`,
     [tokenHash],
   );
-  if (!invite || invite.email.toLowerCase() !== session.user.email.toLowerCase()) redirect("/workspace-invite/invalid");
+  if (!invite) return { ok: false, reason: "expired" };
+  if (invite.email.toLowerCase() !== session.user.email.toLowerCase()) {
+    return { ok: false, reason: "wrong_account" };
+  }
 
   await tx(async (client) => {
     await client.query(

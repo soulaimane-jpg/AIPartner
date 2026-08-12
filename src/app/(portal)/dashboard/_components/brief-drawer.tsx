@@ -104,7 +104,7 @@ export function BriefDrawer({
             </div>
             <div className="h-2 rounded-full bg-secondary overflow-hidden">
               <div
-                className="h-full rounded-full bg-blue-600 transition-[width] duration-400"
+                className="h-full rounded-full bg-primary transition-[width] duration-400"
                 style={{ width: `${Math.min(100, brief.completion)}%` }}
               />
             </div>
@@ -126,7 +126,7 @@ export function BriefDrawer({
                       className={cn(
                         "grid h-5 w-5 shrink-0 place-items-center rounded-full border",
                         reached
-                          ? "border-blue-600 bg-blue-600 text-white"
+                          ? "border-primary bg-primary text-white"
                           : "border-border bg-card text-muted-foreground",
                       )}
                     >
@@ -141,7 +141,7 @@ export function BriefDrawer({
                       {STAGE_LABELS[s] ?? s}
                     </span>
                     {active && (
-                      <span className="rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-blue-700">
+                      <span className="rounded border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
                         Now
                       </span>
                     )}

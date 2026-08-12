@@ -10,6 +10,7 @@ import {
   ZServiceCategory,
   ZBriefStage,
 } from "./enums";
+import { LEAD_STATES } from "@/lib/enums";
 import { BriefId, ShortText } from "./base";
 
 // ─── 3-step qualification modal → createBriefAction ───────────────
@@ -125,6 +126,17 @@ export const AdvanceStageInput = z.object({
   to: ZBriefStage,
 });
 export type AdvanceStageInput = z.infer<typeof AdvanceStageInput>;
+
+/**
+ * Pipeline advance in `leadState` terms — the canonical field. The
+ * legacy `stage` column is derived by the state machine, so admin
+ * moves are expressed as lead states and validated against §5.1.
+ */
+export const AdvanceLeadStateInput = z.object({
+  briefId: BriefId,
+  to: z.enum(LEAD_STATES),
+});
+export type AdvanceLeadStateInput = z.infer<typeof AdvanceLeadStateInput>;
 
 // ─── Delete a brief ───────────────────────────────────────────────
 

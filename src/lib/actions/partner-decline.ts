@@ -17,7 +17,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { defineAction, fail } from "@/lib/actions/define";
-import { query, queryOne, insertRow, updateRows } from "@/lib/db";
+import { queryOne, updateRows } from "@/lib/db";
+import { notifyAdmins } from "@/lib/notify";
 import {
   DECLINE_REASONS,
   DECLINE_REASON_LABELS,
@@ -82,20 +83,20 @@ export const declineMatchWithReasonAction = defineAction({
     );
 
     // Notify all admins so they can re-route the brief.
-    const admins = await query<{ id: string }>(
-      `SELECT "id" FROM "User" WHERE "role" = 'ADMIN'`,
-    );
-    for (const a of admins) {
-      await insertRow("Notification", {
-        userId: a.id,
-        type: "partner.declined",
-        title: `${ctx.user!.name ?? "A partner"} declined a lead`,
-        message: `${DECLINE_REASON_LABELS[reason]}${
+    await notifyAdmins({
+      event: "partner.declined_admin",
+      vars: {
+        briefTitle: match!.briefTitle,
+        partnerName: ctx.user!.name ?? "A partner",
+        reason: `${DECLINE_REASON_LABELS[reason]}${
           freeText ? ` — ${freeText.slice(0, 160)}` : ""
-        } · "${match!.briefTitle}"`,
-        link: `/admin/briefs/${match!.briefId}`,
-      });
-    }
+        }`,
+      },
+      link: `/admin/briefs/${match!.briefId}`,
+      briefId: match!.briefId,
+      matchId,
+      idemKey: `declined:${matchId}`,
+    });
 
     revalidatePath("/partner");
     revalidatePath(`/admin/briefs/${match!.briefId}`);

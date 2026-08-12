@@ -17,9 +17,16 @@ import crypto from "node:crypto";
 import { z } from "zod";
 import { defineAction, fail } from "@/lib/actions/define";
 import { requireStepUp } from "@/lib/step-up";
-import { query, queryOne, exec, insertRow, updateRows, tx } from "@/lib/db";
+import { queryOne, exec, insertRow, updateRows, tx } from "@/lib/db";
 import type { ProjectBriefRow } from "@/lib/db/rows";
-import { BRIEF_STAGES } from "@/lib/enums";
+import { LEAD_STATES } from "@/lib/enums";
+import {
+  advanceLeadIfAllowed,
+  transitionLead,
+} from "@/lib/state-machine/lead";
+import { userActor } from "@/lib/state-machine/transition";
+import { satisfyTimer } from "@/lib/timers";
+import { notify, notifyAdmins } from "@/lib/notify";
 import { renderPartnerOutreach } from "@/lib/email-templates";
 import { sendOutreachEmail } from "@/lib/email/outreach";
 
@@ -27,16 +34,33 @@ import { sendOutreachEmail } from "@/lib/email/outreach";
 
 const ChangeStageInput = z.object({
   briefId: z.string().min(1),
-  stage: z.enum(BRIEF_STAGES),
+  leadState: z.enum(LEAD_STATES),
 });
 
+/**
+ * Admin pipeline move, expressed in `leadState` (the canonical field).
+ * Illegal hops are rejected instead of desyncing the derived `stage`.
+ */
 export const adminChangeStageAction = defineAction({
   name: "admin.brief.change-stage",
   input: ChangeStageInput,
   permission: "brief.update",
   rateLimit: { scope: "admin.brief.change-stage", limit: 60, windowSec: 60 },
-  handler: async ({ briefId, stage }) => {
-    await updateRows("ProjectBrief", { id: briefId }, { stage });
+  handler: async ({ briefId, leadState }, ctx) => {
+    try {
+      await transitionLead({
+        briefId,
+        to: leadState,
+        actor: userActor(ctx.user!.id, ctx.user!.companyId),
+        reason: "Admin pipeline change",
+      });
+    } catch (err) {
+      fail({
+        code: "CONFLICT",
+        reason:
+          err instanceof Error ? err.message : "Illegal pipeline transition",
+      });
+    }
     revalidatePath(`/admin/briefs/${briefId}`);
     revalidatePath("/admin/briefs");
     return { ok: true as const };
@@ -55,7 +79,7 @@ export const adminAssignPartnerAction = defineAction({
   input: AssignPartnerInput,
   permission: "admin.partner-ops",
   rateLimit: { scope: "admin.partner.assign", limit: 30, windowSec: 60 },
-  handler: async ({ briefId, partnerId }) => {
+  handler: async ({ briefId, partnerId }, ctx) => {
     // Admin proposes a match — SOURCED == "awaiting customer approval".
     await insertRow(
       "Match",
@@ -67,11 +91,12 @@ export const adminAssignPartnerAction = defineAction({
       },
     );
 
-    await exec(
-      `UPDATE "ProjectBrief" SET "stage" = 'REVIEW', "updatedAt" = NOW()
-       WHERE "id" = $1 AND "stage" IN ('INTAKE', 'SOURCING')`,
-      [briefId],
-    );
+    await advanceLeadIfAllowed({
+      briefId,
+      to: "PARTNERS_SELECTED",
+      actor: userActor(ctx.user!.id, ctx.user!.companyId),
+      meta: { via: "admin.partner.assign", partnerId },
+    });
 
     const brief = await queryOne<{ ownerId: string; title: string }>(
       'SELECT "ownerId", "title" FROM "ProjectBrief" WHERE "id" = $1',
@@ -82,12 +107,15 @@ export const adminAssignPartnerAction = defineAction({
       [partnerId],
     );
     if (brief && partner) {
-      await insertRow("Notification", {
-        userId: brief.ownerId,
-        type: "match.proposed",
-        title: `${partner.name} proposed as partner`,
-        message: `Our team identified ${partner.name} as a strong fit for "${brief.title}". Review and approve to share your SoW.`,
+      // Firewall: the customer is told a partner was proposed, never
+      // which one — identity flows only after the reveal event (§8).
+      await notify({
+        event: "match.proposed",
+        recipients: [{ userId: brief.ownerId }],
+        vars: { briefTitle: brief.title },
         link: `/briefs/${briefId}/preview`,
+        briefId,
+        idemKey: `proposed:${briefId}:${partnerId}`,
       });
     }
 
@@ -155,17 +183,24 @@ export const markBriefTriagedAction = defineAction({
         triagedAt: new Date(),
         triagedBy: ctx.user!.id,
         triageNotes: notes ?? brief!.triageNotes,
-        stage: brief!.stage === "INTAKE" ? "SOURCING" : brief!.stage,
       },
     );
 
-    await insertRow("Notification", {
-      userId: brief!.ownerId,
-      type: "brief.triaged",
-      title: "Your brief is now in active sourcing",
-      message:
-        "Our team confirmed your project as a real lead. We're identifying the top 5 partner matches.",
+    await advanceLeadIfAllowed({
+      briefId,
+      to: "IN_TRIAGE",
+      actor: userActor(ctx.user!.id, ctx.user!.companyId),
+      meta: { via: "admin.brief.triage" },
+    });
+    await satisfyTimer("brief", briefId, "triage");
+
+    await notify({
+      event: "brief.triaged",
+      recipients: [{ userId: brief!.ownerId }],
+      vars: { briefTitle: brief!.title },
       link: `/briefs/${briefId}/preview`,
+      briefId,
+      idemKey: `triaged:${briefId}`,
     });
 
     revalidatePath(`/admin/briefs/${briefId}`);
@@ -215,12 +250,16 @@ export const confirmMeetingSlotAction = defineAction({
       },
     );
 
-    await insertRow("Notification", {
-      userId: brief!.ownerId,
-      type: "meeting.confirmed",
-      title: "Alignment meeting confirmed",
-      message: `Your meeting with the AI Partner team is confirmed for ${new Date(chosen!.startsAt).toLocaleString()}.`,
+    await notify({
+      event: "meeting.confirmed",
+      recipients: [{ userId: brief!.ownerId }],
+      vars: {
+        briefTitle: brief!.title,
+        slot: new Date(chosen!.startsAt).toUTCString(),
+      },
       link: `/briefs/${briefId}/preview`,
+      briefId,
+      idemKey: `meeting-confirmed:${briefId}:${chosen!.startsAt}`,
     });
 
     revalidatePath(`/admin/briefs/${briefId}`);
@@ -257,7 +296,7 @@ export const sourcePartnersAction = defineAction({
   output: z.object({ invited: z.number().int().nonnegative() }),
   permission: "admin.partner-ops",
   rateLimit: { scope: "admin.partners.source", limit: 20, windowSec: 60 },
-  handler: async ({ briefId, selections }) => {
+  handler: async ({ briefId, selections }, ctx) => {
     const brief = await queryOne<
       ProjectBriefRow & { anonymizedProfile: string | null }
     >(
@@ -343,15 +382,20 @@ export const sourcePartnersAction = defineAction({
       invited++;
     }
 
-    await updateRows("ProjectBrief", { id: briefId }, { stage: "SHORTLIST" });
+    await advanceLeadIfAllowed({
+      briefId,
+      to: "SENT_TO_PARTNERS",
+      actor: userActor(ctx.user!.id, ctx.user!.companyId),
+      meta: { via: "admin.outreach", invited },
+    });
 
-    await insertRow("Notification", {
-      userId: brief!.ownerId,
-      type: "shortlist.created",
-      title: "5 partners contacted — shortlist building",
-      message:
-        "We've sent the opportunity to your top partner matches. We'll show you who accepts so you can narrow to 3.",
+    await notify({
+      event: "shortlist.created",
+      recipients: [{ userId: brief!.ownerId }],
+      vars: { briefTitle: brief!.title },
       link: `/briefs/${briefId}/shortlist`,
+      briefId,
+      idemKey: `shortlist-created:${briefId}`,
     });
 
     revalidatePath(`/admin/briefs/${briefId}`);
@@ -375,7 +419,7 @@ export const narrowShortlistAction = defineAction({
   input: NarrowShortlistInput,
   permission: "match.narrow",
   rateLimit: { scope: "match.narrow", limit: 10, windowSec: 60 },
-  handler: async ({ briefId, finalThreeMatchIds }) => {
+  handler: async ({ briefId, finalThreeMatchIds }, ctx) => {
     const brief = await queryOne<{
       id: string;
       ownerId: string;
@@ -402,25 +446,22 @@ export const narrowShortlistAction = defineAction({
           [finalThreeMatchIds[i], i + 1],
         );
       }
-      await client.query(
-        `UPDATE "ProjectBrief" SET "stage" = 'SELECTION', "updatedAt" = NOW()
-         WHERE "id" = $1`,
-        [briefId],
-      );
     });
 
-    const admins = await query<{ id: string }>(
-      `SELECT "id" FROM "User" WHERE "role" = 'ADMIN'`,
-    );
-    for (const a of admins) {
-      await insertRow("Notification", {
-        userId: a.id,
-        type: "shortlist.narrowed",
-        title: "Customer picked their final 3",
-        message: `"${brief!.title}" — coordinate meetings with the top 3 partners.`,
-        link: `/admin/briefs/${briefId}`,
-      });
-    }
+    await advanceLeadIfAllowed({
+      briefId,
+      to: "COMPARISON_RELEASED",
+      actor: userActor(ctx.user!.id, ctx.user!.companyId),
+      meta: { via: "match.narrow", finalThree: finalThreeMatchIds.length },
+    });
+
+    await notifyAdmins({
+      event: "shortlist.narrowed_admin",
+      vars: { briefTitle: brief!.title },
+      link: `/admin/briefs/${briefId}`,
+      briefId,
+      idemKey: `shortlist-narrowed:${briefId}`,
+    });
 
     revalidatePath(`/briefs/${briefId}/shortlist`);
     revalidatePath(`/briefs/${briefId}/preview`);

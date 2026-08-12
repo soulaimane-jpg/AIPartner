@@ -13,8 +13,6 @@ import { computeCompletion, computeCompletionBreakdown } from "@/lib/brief";
 import { getBriefCapabilities } from "@/lib/workspace-access";
 import { buildBriefSystemPrompt } from "@/lib/brief-prompts";
 import { revalidatePath } from "next/cache";
-// TEMP: capture last error for /api/_debug/last-chat-error. Remove once diagnosed.
-import { recordChatError } from "@/lib/_debug-last-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -339,8 +337,6 @@ export async function POST(req: NextRequest) {
         controller.close();
       } catch (err) {
         console.error("Claude chat error:", err);
-        // TEMP: capture for /api/_debug/last-chat-error
-        recordChatError(err);
         const errMsg =
           "\n\n_Sorry — I hit a connection issue. Please try again in a moment._";
         controller.enqueue(encoder.encode(errMsg));

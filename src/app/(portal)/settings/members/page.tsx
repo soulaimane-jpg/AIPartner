@@ -3,6 +3,8 @@ import { Users } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { query, queryOne } from "@/lib/db";
 import { WorkspaceInviteForm } from "./workspace-invite-form";
+import { JoinRequests } from "./join-requests";
+import { listPendingJoinRequests } from "@/lib/workspace-discovery";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Workspace members · AI Partner" };
@@ -26,6 +28,9 @@ export default async function WorkspaceMembersPage() {
     `SELECT "id", "email", "role", "expiresAt" FROM "WorkspaceInvite" WHERE "companyId"=$1 AND "status"='INVITED' ORDER BY "createdAt" DESC`,
     [session.user.companyId],
   ) : [];
+  const joinRequests = canManage
+    ? await listPendingJoinRequests(session.user.companyId)
+    : [];
 
   // Brief collaborators are a separate population from workspace members:
   // inviting someone to review a single SoW deliberately does NOT make them a
@@ -110,6 +115,17 @@ export default async function WorkspaceMembersPage() {
           </div>
         </div>
       </header>
+
+      {canManage && joinRequests.length > 0 && (
+        <JoinRequests
+          requests={joinRequests.map((r) => ({
+            id: r.id,
+            requesterName: r.requesterName,
+            requesterEmail: r.requesterEmail,
+            emailDomain: r.emailDomain,
+          }))}
+        />
+      )}
 
       {canManage && <WorkspaceInviteForm />}
 

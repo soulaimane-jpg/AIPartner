@@ -90,6 +90,7 @@ export function getPortalNav(role: PortalRole | string | undefined): PortalNav {
           { href: "/partner/opportunities", label: "Opportunities", icon: "inbox", badgeKey: "inbox-unread" },
           { href: "/partner/pipeline", label: "Pipeline", icon: "pipeline" },
           { href: "/partner/won", label: "Won", icon: "won" },
+          { href: "/partner/analytics", label: "Analytics", icon: "insights" },
         ],
         footer: [
           { href: "/partner/profile", label: "Company profile", icon: "profile" },

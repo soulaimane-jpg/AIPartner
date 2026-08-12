@@ -35,7 +35,10 @@ const PROPOSAL_TRANSITIONS: Partial<
   DRAFT: ["INTERNAL_REVIEW", "INTERNALLY_APPROVED", "SUBMITTED"],
   INTERNAL_REVIEW: ["INTERNALLY_APPROVED", "DRAFT"],
   INTERNALLY_APPROVED: ["SUBMITTED", "DRAFT"],
-  SUBMITTED: ["IN_QC", "QC_PASSED"], // QC may pass directly for trivial cases — still an explicit admin event
+  // QC may pass directly for trivial cases — still an explicit admin
+  // event. DRAFT is the partner withdrawing their own submission
+  // before QC, so a pricing error doesn't require emailing an admin.
+  SUBMITTED: ["IN_QC", "QC_PASSED", "DRAFT"],
   IN_QC: ["CLARIFICATION_NEEDED", "QC_PASSED"],
   CLARIFICATION_NEEDED: ["IN_QC", "SUBMITTED"],
   QC_PASSED: ["SELECTED", "DECLINED", "SHORTLISTED"],

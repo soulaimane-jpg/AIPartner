@@ -42,6 +42,18 @@ export const SETTING_DEFS = {
     description:
       "Hours the company has to select partners after the comparison is released.",
   } as SettingDef<number>,
+  triage_hours: {
+    key: "triage_hours",
+    default: 24,
+    description:
+      "Hours the admin team has to triage a submitted brief before it is flagged as overdue.",
+  } as SettingDef<number>,
+  reveal_to_meeting_hours: {
+    key: "reveal_to_meeting_hours",
+    default: 72,
+    description:
+      "Hours to schedule intro meetings after the customer approves the identity reveal.",
+  } as SettingDef<number>,
   stagger_hours: {
     key: "stagger_hours",
     default: 2,

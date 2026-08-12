@@ -2,8 +2,12 @@
  * Match-score widget — RSC.
  *
  * Renders the deterministic match breakdown for the brief–partner
- * pair. Pure server: takes the brief + partner, calls `computeMatch`,
- * formats the breakdown.
+ * pair via `scorePartnersForBrief`, the same unified entry point the
+ * admin sourcing screen uses. That picks the tag-substantiated v2
+ * scorer when both sides have structured tags and falls back to the
+ * legacy string-overlap score otherwise — so the partner sees exactly
+ * the score the platform actually ranked them by, rather than a
+ * second, divergent number.
  *
  * Used in the partner inbox detail page so the partner can see *why*
  * AI Partner matched them. Surfacing the reasoning (a) calms the
@@ -17,9 +21,15 @@ import type {
   PartnerProfileRow as PartnerProfile,
 } from "@/lib/db/rows";
 import { Sparkles, ShieldCheck, ShieldAlert } from "lucide-react";
-import { computeMatch } from "@/lib/match-score";
+import { scorePartnersForBrief } from "@/lib/match-load";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+
+const GATE_LABELS: Record<string, string> = {
+  budget_below_minimum: "Project is below your minimum engagement size",
+  cannot_start_in_time: "Your bench can't start within their timeline",
+  missing_required_compliance: "Missing a required compliance credential",
+};
 
 const LABEL_TONE: Record<string, string> = {
   Excellent: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -29,14 +39,16 @@ const LABEL_TONE: Record<string, string> = {
   Poor: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
-export function MatchScoreWidget({
+export async function MatchScoreWidget({
   brief,
   partner,
 }: {
   brief: ProjectBrief;
   partner: Company & { partnerProfile: PartnerProfile | null };
 }) {
-  const breakdown = computeMatch({ brief, partner });
+  const scored = await scorePartnersForBrief(brief, [partner]);
+  const breakdown = scored.get(partner.id);
+  if (!breakdown) return null;
   const tone = LABEL_TONE[breakdown.label] ?? LABEL_TONE.Fair;
   const Icon = breakdown.score >= 70 ? ShieldCheck : ShieldAlert;
 
@@ -81,15 +93,38 @@ export function MatchScoreWidget({
           </ul>
         )}
 
-        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-dashed border-border">
-          {Object.entries(breakdown.components).map(([key, value]) => (
-            <div key={key} className="flex items-center justify-between text-[11.5px]">
-              <span className="capitalize text-muted-foreground">{key}</span>
-              <Badge tone="neutral" shape="soft" size="sm">
-                +{value.score}
-              </Badge>
+        {breakdown.gates.length > 0 && (
+          <div className="space-y-1.5 pt-1 border-t border-dashed border-border">
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+              Requirements not met
             </div>
-          ))}
+            {breakdown.gates.map((g) => (
+              <div
+                key={g}
+                className="flex items-center justify-between gap-2 text-[11.5px]"
+              >
+                <span className="text-muted-foreground">
+                  {GATE_LABELS[g] ?? g}
+                </span>
+                <Badge tone="warning" shape="soft" size="sm">
+                  blocker
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between pt-1 border-t border-dashed border-border text-[11px] text-muted-foreground">
+          <span>
+            {breakdown.engine === "tags"
+              ? "Scored on substantiated capability tags"
+              : "Scored on profile keywords — add structured tags for a sharper match"}
+          </span>
+          {breakdown.substantiated.length > 0 && (
+            <Badge tone="neutral" shape="soft" size="sm">
+              {breakdown.substantiated.length} substantiated
+            </Badge>
+          )}
         </div>
       </div>
     </section>

@@ -1,7 +1,13 @@
 "use server";
 
 /**
- * Proposal Server Actions — partners submit, customers select.
+ * Proposal Server Actions — customer selection.
+ *
+ * Partner submission lives in `proposal-builder.ts` (structured,
+ * section-based, deadline- and state-machine-aware). The unstructured
+ * `submitPartnerProposalAction` that used to live here was removed:
+ * it had no UI, skipped the T2 deadline check and the proposal state
+ * machine, and would silently overwrite an already-submitted proposal.
  *
  * Wrapped in `defineAction` for validation/RBAC/audit/rate-limit.
  */
@@ -9,7 +15,10 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { defineAction, fail } from "@/lib/actions/define";
-import { queryOne, exec, insertRow, updateRows, tx } from "@/lib/db";
+import { queryOne, tx } from "@/lib/db";
+import { advanceLeadIfAllowed } from "@/lib/state-machine/lead";
+import { userActor } from "@/lib/state-machine/transition";
+import { notify, notifyAdmins } from "@/lib/notify";
 
 // ─── Customer selects a winning proposal ──────────────────────────
 
@@ -24,8 +33,8 @@ export const selectProposalAction = defineAction({
   permission: "proposal.pin-winner",
   rateLimit: { scope: "proposal.select", limit: 20, windowSec: 60 },
   handler: async ({ briefId, proposalId }, ctx) => {
-    const brief = await queryOne<{ id: string }>(
-      'SELECT "id" FROM "ProjectBrief" WHERE "id" = $1 AND "ownerId" = $2',
+    const brief = await queryOne<{ id: string; title: string }>(
+      'SELECT "id", "title" FROM "ProjectBrief" WHERE "id" = $1 AND "ownerId" = $2',
       [briefId, ctx.user!.id],
     );
     if (!brief) fail({ code: "NOT_FOUND", resource: "Brief" });
@@ -41,138 +50,41 @@ export const selectProposalAction = defineAction({
          WHERE "id" = $1`,
         [proposalId],
       );
-      await client.query(
-        `UPDATE "ProjectBrief" SET "stage" = 'INTRODUCTION', "updatedAt" = NOW()
-         WHERE "id" = $1`,
-        [briefId],
-      );
-      await insertRow(
-        "Notification",
-        {
-          userId: ctx.user!.id,
-          type: "brief.partner_selected",
-          title: "Partner selected",
-          message:
-            "We're facilitating the introduction to your selected partner.",
-          link: `/briefs/${briefId}/preview`,
-        },
-        { client },
-      );
+    });
 
-      // Notify admins to set up the meeting.
-      const admins = await client.query<{ id: string }>(
-        `SELECT "id" FROM "User" WHERE "role" = 'ADMIN'`,
-      );
-      for (const a of admins.rows) {
-        await insertRow(
-          "Notification",
-          {
-            userId: a.id,
-            type: "partners.selected",
-            title: "Client selected a partner — schedule meeting",
-            message: `The client selected a partner for "${briefId}". Set up an alignment meeting.`,
-            link: `/admin/briefs/${briefId}`,
-          },
-          { client },
-        );
-      }
+    // Notifications live outside the transaction on purpose: they
+    // enqueue email, and a mail hiccup must not roll back a selection
+    // the customer has already made.
+    await notify({
+      event: "brief.partner_selected",
+      recipients: [{ userId: ctx.user!.id }],
+      vars: { briefTitle: brief!.title },
+      link: `/briefs/${briefId}/preview`,
+      briefId,
+      idemKey: `partner-selected:${proposalId}`,
+    });
+    await notifyAdmins({
+      event: "selection.partners_selected_admin",
+      vars: { briefTitle: brief!.title, partnerNames: "1 partner" },
+      link: `/admin/briefs/${briefId}`,
+      briefId,
+      idemKey: `selected-admin:${proposalId}`,
+    });
+
+    // Selection is NOT the reveal. This action used to write
+    // stage='INTRODUCTION', which for briefs whose `leadState` was
+    // still the default DRAFT inferred REVEAL_APPROVED — auto-revealing
+    // partner identity without the separate, consented reveal step
+    // (§8 layer 3). The lead stops at COMPANY_SELECTED; the customer
+    // still has to approve the reveal explicitly.
+    await advanceLeadIfAllowed({
+      briefId,
+      to: "COMPANY_SELECTED",
+      actor: userActor(ctx.user!.id, ctx.user!.companyId),
+      meta: { via: "proposal.select", proposalId },
     });
 
     revalidatePath("/dashboard");
-    revalidatePath(`/briefs/${briefId}/proposals`);
-    return { ok: true as const };
-  },
-});
-
-// ─── Partner submits / updates a proposal ────────────────────────
-
-const SubmitProposalInput = z.object({
-  briefId: z.string().min(1),
-  summary: z.string().min(5),
-  approach: z.string().min(5).optional(),
-  timelineWeeks: z.coerce.number().int().positive(),
-  /** Dollars — converted to cents on the server. */
-  totalCost: z.coerce.number().int().nonnegative(),
-  strengths: z.array(z.string()).default([]),
-  team: z
-    .array(
-      z.object({
-        role: z.string().min(1),
-        seniority: z.string().optional(),
-        count: z.coerce.number().int().positive().default(1),
-      }),
-    )
-    .default([]),
-});
-
-export const submitPartnerProposalAction = defineAction({
-  name: "proposal.submit",
-  input: SubmitProposalInput,
-  permission: "proposal.submit",
-  rateLimit: { scope: "proposal.submit", limit: 10, windowSec: 60 },
-  handler: async (parsed, ctx) => {
-    if (!ctx.user?.companyId) {
-      fail({ code: "FORBIDDEN", reason: "Partner company required" });
-    }
-    const { briefId } = parsed;
-    const match = await queryOne<{ id: string; proposalId: string | null }>(
-      `SELECT m."id", p."id" AS "proposalId"
-       FROM "Match" m
-       LEFT JOIN "Proposal" p ON p."matchId" = m."id"
-       WHERE m."briefId" = $1 AND m."partnerId" = $2`,
-      [briefId, ctx.user!.companyId!],
-    );
-    if (!match) {
-      fail({
-        code: "FORBIDDEN",
-        reason: "This brief isn't assigned to your company.",
-      });
-    }
-
-    const data = {
-      summary: parsed.summary,
-      approach: parsed.approach ?? null,
-      timelineWeeks: parsed.timelineWeeks,
-      totalCost: parsed.totalCost * 100,
-      strengths: JSON.stringify(parsed.strengths),
-      teamComposition: JSON.stringify(parsed.team),
-      status: "SUBMITTED" as const,
-      submittedAt: new Date(),
-    };
-
-    if (match!.proposalId) {
-      await updateRows("Proposal", { id: match!.proposalId }, data);
-    } else {
-      await insertRow("Proposal", {
-        briefId,
-        partnerId: ctx.user!.companyId!,
-        matchId: match!.id,
-        ...data,
-      });
-    }
-
-    await exec(
-      `UPDATE "ProjectBrief" SET "stage" = 'PROPOSALS', "updatedAt" = NOW()
-       WHERE "id" = $1 AND "stage" IN ('SOURCING', 'REVIEW')`,
-      [briefId],
-    );
-
-    const brief = await queryOne<{ ownerId: string; title: string }>(
-      'SELECT "ownerId", "title" FROM "ProjectBrief" WHERE "id" = $1',
-      [briefId],
-    );
-    if (brief) {
-      await insertRow("Notification", {
-        userId: brief.ownerId,
-        type: "proposal.received",
-        title: "New proposal received",
-        message: `A proposal from ${ctx.user!.name ?? "a partner"} is ready to review.`,
-        link: `/briefs/${briefId}/proposals`,
-      });
-    }
-
-    revalidatePath("/partner");
-    revalidatePath(`/partner/briefs/${briefId}`);
     revalidatePath(`/briefs/${briefId}/proposals`);
     return { ok: true as const };
   },

@@ -52,6 +52,13 @@ export interface CompanyRow {
   kind: string;
   website: string | null;
   industry: string | null;
+  /** PENDING | APPROVED | REJECTED — gates sourcing and invites. */
+  verificationStatus: string;
+  verifiedAt: Date | null;
+  verifiedById: string | null;
+  rejectionReason: string | null;
+  domainVerifiedAt: Date | null;
+  signupEmailDomain: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

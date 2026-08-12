@@ -164,6 +164,162 @@ export const NOTIFICATION_EVENTS = {
     body: "All partner invites for \"{{briefTitle}}\" have expired or been declined. Re-select partners to keep the lead moving.\n\n{{link}}",
     description: "All invites dead — admin must re-select partners.",
   },
+  // 20 — admin SLA breaches (P0). Escalation only: a missed internal
+  // deadline is an ops problem, never a reason to move the lead.
+  "triage.overdue_admin": {
+    subject: "Triage overdue: {{briefTitle}}",
+    body: "\"{{briefTitle}}\" is still waiting on triage past the agreed SLA. The customer is blocked until this moves.\n\n{{link}}",
+    description: "Admin triage SLA elapsed on a submitted brief.",
+  },
+  "meetings.overdue_admin": {
+    subject: "Meetings not scheduled: {{briefTitle}}",
+    body: "Identities were revealed for \"{{briefTitle}}\" but no intro meetings have been scheduled yet.\n\n{{link}}",
+    description: "Reveal → meetings SLA elapsed.",
+  },
+  "cron.unhealthy_admin": {
+    subject: "Scheduled jobs are not running",
+    body: "These background jobs are overdue or failing:\n\n{{jobs}}\n\nEverything time-based (deadlines, reminders, outbound email, the retention purge) depends on them.\n\n{{link}}",
+    description: "Escalation when a cron job goes stale or starts failing.",
+  },
+  // 22 — lifecycle events that previously wrote `Notification` rows
+  // directly and therefore never sent an email to anyone.
+  "brief.submitted": {
+    subject: "Brief sent to AI Partner",
+    body: "We've received \"{{briefTitle}}\". Our team is identifying the best-fit Google Cloud partners and will be in touch shortly.\n\n{{link}}",
+    description: "Confirmation to the customer after submitting a brief.",
+  },
+  "brief.awaiting_triage_admin": {
+    subject: "New brief awaiting triage: {{briefTitle}}",
+    body: "\"{{briefTitle}}\" was submitted and is waiting on triage.\n\n{{link}}",
+    description: "Admin alert that a new brief needs triage.",
+  },
+  "brief.triaged": {
+    subject: "Your brief is in active sourcing",
+    body: "We confirmed \"{{briefTitle}}\" as a real lead and are identifying your best-fit partners now.\n\n{{link}}",
+    description: "Customer notified that triage is complete.",
+  },
+  "match.proposed": {
+    subject: "A partner has been proposed for {{briefTitle}}",
+    body: "Our team identified a strong fit for \"{{briefTitle}}\". Review and approve to share your SoW.\n\n{{link}}",
+    description: "Admin proposed a match to the customer.",
+  },
+  "shortlist.created": {
+    subject: "Partners contacted for {{briefTitle}}",
+    body: "We've sent your opportunity to your top partner matches. You'll see who accepts so you can narrow to three.\n\n{{link}}",
+    description: "Customer notified that outreach has gone out.",
+  },
+  "shortlist.narrowed_admin": {
+    subject: "Customer picked their final 3: {{briefTitle}}",
+    body: "The customer narrowed \"{{briefTitle}}\" to their final three. Coordinate the meetings.\n\n{{link}}",
+    description: "Admin alert that the shortlist was narrowed.",
+  },
+  "selection.partners_selected_admin": {
+    subject: "Partner selected — schedule meetings: {{briefTitle}}",
+    body: "The customer selected their partner(s) for \"{{briefTitle}}\". Set up the alignment meetings.\n\n{{link}}",
+    description: "Admin alert that the customer completed selection.",
+  },
+  "brief.partner_selected": {
+    subject: "Partner selected for {{briefTitle}}",
+    body: "Thanks — we're facilitating the introduction to your selected partner.\n\n{{link}}",
+    description: "Customer confirmation after selecting a partner.",
+  },
+  "proposal.invited": {
+    subject: "New project brief shared with you",
+    body: "The customer approved the match for \"{{briefTitle}}\". You can review the SoW and draft a proposal.\n\n{{link}}",
+    description: "Partner invited to draft a proposal.",
+  },
+  "partner.declined_admin": {
+    subject: "Partner declined: {{briefTitle}}",
+    body: "{{partnerName}} declined the lead for \"{{briefTitle}}\".\n\nReason: {{reason}}\n\n{{link}}",
+    description: "Admin alert that a partner declined.",
+  },
+  "meeting.proposed": {
+    subject: "Partner proposed meeting times for {{briefTitle}}",
+    body: "A partner proposed times to meet about \"{{briefTitle}}\". Pick one that works.\n\n{{link}}",
+    description: "Meeting slots proposed by a partner.",
+  },
+  "collaborator.decision": {
+    subject: "{{actorName}} {{decision}} your SoW",
+    body: "{{actorName}} {{decision}} the SoW for \"{{briefTitle}}\".\n\n{{note}}\n\n{{link}}",
+    description: "Collaborator approved/rejected/reviewed a SoW.",
+  },
+  "collaborator.joined": {
+    subject: "{{actorName}} joined your brief",
+    body: "{{actorName}} accepted your invite and can now collaborate on \"{{briefTitle}}\".\n\n{{link}}",
+    description: "Collaborator accepted a brief invite.",
+  },
+  "brief.access_requested": {
+    subject: "{{requesterName}} requested access to {{briefTitle}}",
+    body: "{{requesterName}} asked for access to \"{{briefTitle}}\". Review and grant or decline.\n\n{{link}}",
+    description: "Someone requested access to a brief.",
+  },
+  "brief.access_granted": {
+    subject: "Brief access granted",
+    body: "You can now open this brief as {{role}}.\n\n{{link}}",
+    description: "A brief access request was granted.",
+  },
+  // 23 — engagement lifecycle (acceptance as a first-class event).
+  "engagement.ready_for_acceptance": {
+    subject: "Confirm your engagement for {{briefTitle}}",
+    body: "The agreed scope and commercial terms for \"{{briefTitle}}\" are ready for your confirmation.\n\n{{link}}",
+    description: "Engagement drafted and awaiting customer acceptance.",
+  },
+  "engagement.accepted": {
+    subject: "Engagement confirmed: {{briefTitle}}",
+    body: "The customer confirmed the engagement for \"{{briefTitle}}\". You're clear to start.\n\n{{link}}",
+    description: "Customer accepted the engagement — partner notified.",
+  },
+  "engagement.accepted_admin": {
+    subject: "Engagement accepted: {{briefTitle}}",
+    body: "{{acceptedByName}} accepted the engagement for \"{{briefTitle}}\".\n\n{{link}}",
+    description: "Customer accepted the engagement — admin notified.",
+  },
+  "engagement.delivered": {
+    subject: "Engagement delivered: {{briefTitle}}",
+    body: "Your engagement for \"{{briefTitle}}\" is marked delivered. We'd value your feedback.\n\n{{link}}",
+    description: "Engagement completed.",
+  },
+  "workspace.join_requested": {
+    subject: "{{requesterName}} wants to join {{companyName}}",
+    body: "{{requesterName}} ({{requesterEmail}}) signed up with your company's email domain and asked to join your workspace.\n\nApprove only if you recognise them — approving shares every brief in the workspace.\n\n{{link}}",
+    description: "Domain-matched signup requested to join an existing workspace.",
+  },
+  "workspace.join_approved": {
+    subject: "You've been added to your team's workspace",
+    body: "Your request to join was approved. You can now see your team's briefs.\n\n{{link}}",
+    description: "Workspace join request approved.",
+  },
+  "lead.claimed": {
+    subject: "Your invite was claimed",
+    body: "{{customerName}} ({{companyName}}) just created their AI Partner account from your invite.\n\n{{link}}",
+    description: "Googler notified that their referred lead signed up.",
+  },
+  "partner.accepted_admin": {
+    subject: "{{partnerName}} accepted: {{briefTitle}}",
+    body: "{{acceptedName}} accepted the lead for {{partnerName}} on \"{{briefTitle}}\".\n\n{{link}}",
+    description: "Partner accepted a lead invite.",
+  },
+  "partner.accepted_confirmation": {
+    subject: "You're in — {{briefTitle}}",
+    body: "Thanks for accepting. Your proposal is due by {{proposalDeadline}}.\n\n{{link}}",
+    description: "Confirmation to the partner contact who accepted a lead.",
+  },
+  "proposal.withdrawn_admin": {
+    subject: "Proposal withdrawn: {{briefTitle}}",
+    body: "{{partnerName}} withdrew their proposal for \"{{briefTitle}}\" back to draft.\n\nReason: {{reason}}\n\n{{link}}",
+    description: "Partner withdrew a submitted proposal before QC.",
+  },
+  // 21 — partner vetting decision (P0)
+  "partner.verification_approved": {
+    subject: "{{partnerName}} is verified on AI Partner",
+    body: "Your partner account has been verified. You're now eligible to receive matched opportunities.\n\n{{link}}",
+    description: "Admin approved a pending partner company.",
+  },
+  "partner.verification_rejected": {
+    subject: "We couldn't verify {{partnerName}}",
+    body: "We couldn't verify your partner account.\n\nReason: {{reason}}\n\nUpdate your profile and reply to this email to request another review.\n\n{{link}}",
+    description: "Admin rejected a pending partner company.",
+  },
 } as const;
 
 export type NotificationEvent = keyof typeof NOTIFICATION_EVENTS;

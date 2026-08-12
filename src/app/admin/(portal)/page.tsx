@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { timeAgo, cn } from "@/lib/utils";
 import { STAGE_ORDER } from "@/lib/constants";
+import { CronHealthPanel } from "@/components/admin/cron-health-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -109,6 +110,10 @@ export default async function AdminOverviewPage() {
           Control Center
         </h1>
       </header>
+
+      {/* Scheduler health — everything time-based fails silently
+          without it, so it sits above the fold. */}
+      <CronHealthPanel />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

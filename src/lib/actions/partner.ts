@@ -14,10 +14,15 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { defineAction, fail } from "@/lib/actions/define";
-import { query, queryOne, insertRow, updateRows, tx } from "@/lib/db";
+import { queryOne, exec, insertRow, updateRows } from "@/lib/db";
 import { PARTNER_TIER_VALUES } from "@/lib/enums";
 import { renderPartnerOutreach } from "@/lib/email-templates";
 import { sendOutreachEmail } from "@/lib/email/outreach";
+import { transitionInvite } from "@/lib/state-machine/invite";
+import { SYSTEM_ACTOR } from "@/lib/state-machine/transition";
+import { satisfyTimer, startTimer } from "@/lib/timers";
+import { getSetting } from "@/lib/settings";
+import { notify, notifyAdmins } from "@/lib/notify";
 
 // ─── Update partner profile ──────────────────────────────────────
 
@@ -215,12 +220,15 @@ export const acceptPartnerTermsAction = defineAction({
       id: string;
       briefId: string;
       partnerId: string;
+      status: string;
       acceptedTermsAt: Date | null;
+      acceptDeadlineAt: Date | null;
       outreachEmail: string | null;
       briefTitle: string;
       partnerName: string;
     }>(
-      `SELECT m."id", m."briefId", m."partnerId", m."acceptedTermsAt", m."outreachEmail",
+      `SELECT m."id", m."briefId", m."partnerId", m."status", m."acceptedTermsAt",
+              m."acceptDeadlineAt", m."outreachEmail",
               b."title" AS "briefTitle", c."name" AS "partnerName"
        FROM "Match" m
        JOIN "ProjectBrief" b ON b."id" = m."briefId"
@@ -234,48 +242,96 @@ export const acceptPartnerTermsAction = defineAction({
       return { briefId: match!.briefId, matchId: match!.id };
     }
 
+    // The emailed link is not a way around T1: the authenticated path
+    // enforces the acceptance window, so this one must too.
+    if (match!.acceptDeadlineAt && match!.acceptDeadlineAt < new Date()) {
+      fail({ code: "CONFLICT", reason: "The acceptance window has passed" });
+    }
+
     const acceptedBy = (match!.outreachEmail ?? "").toLowerCase();
 
-    await tx(async (client) => {
-      await client.query(
-        `UPDATE "Match" SET
-           "status" = 'PARTNER_ACCEPTED',
-           "acceptedTermsAt" = NOW(),
-           "acceptedTermsBy" = $2,
-           "acceptedTermsName" = $3,
-           "acceptedTermsIp" = $4,
-           "acceptedTermsUa" = $5,
-           "updatedAt" = NOW()
-         WHERE "id" = $1`,
-        [
-          match!.id,
-          acceptedBy || null,
-          acceptedName,
-          ipAddress ?? null,
-          userAgent ?? null,
-        ],
-      );
-      await client.query(
-        `UPDATE "PartnerProfile" SET
-           "acceptedTermsAt" = NOW(),
-           "acceptedTermsBy" = $2,
-           "acceptedTermsName" = $3,
-           "updatedAt" = NOW()
-         WHERE "companyId" = $1 AND "acceptedTermsAt" IS NULL`,
-        [match!.partnerId, acceptedBy || null, acceptedName],
-      );
+    // T2 starts now, exactly as it does for an authenticated accept.
+    const timer = await queryOne<{ meta: string | null }>(
+      `SELECT "meta" FROM "TimerInstance"
+       WHERE "entityType" = 'match' AND "entityId" = $1
+         AND "timerType" = 'lead_accept' AND "status" = 'active'
+       LIMIT 1`,
+      [match!.id],
+    );
+    let proposalHours = await getSetting("proposal_submit_hours");
+    try {
+      const meta = JSON.parse(timer?.meta ?? "{}") as {
+        proposalHoursOverride?: number | null;
+      };
+      if (meta.proposalHoursOverride) proposalHours = meta.proposalHoursOverride;
+    } catch {
+      /* default stands */
+    }
+    const proposalDeadline = new Date(Date.now() + proposalHours * 3_600_000);
+
+    // Go through the invite state machine so the acceptance is audited
+    // with a from-state, like every other transition.
+    await transitionInvite({
+      matchId: match!.id,
+      to: "PARTNER_ACCEPTED",
+      actor: SYSTEM_ACTOR,
+      reason: `Accepted via emailed outreach link by ${acceptedName}`,
+      data: {
+        acceptedTermsAt: new Date(),
+        acceptedTermsBy: acceptedBy || null,
+        acceptedTermsName: acceptedName,
+        acceptedTermsIp: ipAddress ?? null,
+        acceptedTermsUa: userAgent ?? null,
+        proposalDeadlineAt: proposalDeadline,
+      },
     });
 
-    const admins = await query<{ id: string }>(
-      `SELECT "id" FROM "User" WHERE "role" = 'ADMIN'`,
+    await exec(
+      `UPDATE "PartnerProfile" SET
+         "acceptedTermsAt" = NOW(),
+         "acceptedTermsBy" = $2,
+         "acceptedTermsName" = $3,
+         "updatedAt" = NOW()
+       WHERE "companyId" = $1 AND "acceptedTermsAt" IS NULL`,
+      [match!.partnerId, acceptedBy || null, acceptedName],
     );
-    for (const a of admins) {
-      await insertRow("Notification", {
-        userId: a.id,
-        type: "partner.accepted",
-        title: `${match!.partnerName} accepted the lead`,
-        message: `${acceptedName} signed for ${match!.partnerName} on "${match!.briefTitle}".`,
-        link: `/admin/briefs/${match!.briefId}`,
+
+    await satisfyTimer("match", match!.id, "lead_accept");
+    await startTimer({
+      entityType: "match",
+      entityId: match!.id,
+      timerType: "proposal_submit",
+      deadlineAt: proposalDeadline,
+      meta: { briefId: match!.briefId, matchId: match!.id },
+    });
+
+    await notifyAdmins({
+      event: "partner.accepted_admin",
+      vars: {
+        briefTitle: match!.briefTitle,
+        partnerName: match!.partnerName,
+        acceptedName,
+      },
+      link: `/admin/briefs/${match!.briefId}`,
+      briefId: match!.briefId,
+      matchId: match!.id,
+      idemKey: `accepted:${match!.id}`,
+    });
+
+    // Confirm to the partner contact who just signed — previously this
+    // was the one acceptance path that sent them nothing at all.
+    if (acceptedBy) {
+      await notify({
+        event: "partner.accepted_confirmation",
+        recipients: [{ email: acceptedBy }],
+        vars: {
+          briefTitle: match!.briefTitle,
+          proposalDeadline: proposalDeadline.toUTCString(),
+        },
+        link: `/partner/briefs/${match!.briefId}`,
+        briefId: match!.briefId,
+        matchId: match!.id,
+        idemKey: `accept-confirm:${match!.id}`,
       });
     }
 

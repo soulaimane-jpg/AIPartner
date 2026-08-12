@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { UserPlus } from "lucide-react";
+import { UserPlus, TrendingUp } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { getGooglerLeads } from "@/lib/lead-query";
@@ -25,11 +25,18 @@ export default async function GooglerLeadsListPage() {
             Every customer you&apos;ve referred — with live progress.
           </p>
         </div>
-        <Button asChild className="h-10 px-5">
-          <Link href="/google/leads/new">
-            <UserPlus className="h-4 w-4 mr-2" /> Refer a customer
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" className="h-10 px-4">
+            <Link href="/google/attribution">
+              <TrendingUp className="h-4 w-4 mr-2" /> Referral impact
+            </Link>
+          </Button>
+          <Button asChild className="h-10 px-5">
+            <Link href="/google/leads/new">
+              <UserPlus className="h-4 w-4 mr-2" /> Refer a customer
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-2xl border border-border bg-white overflow-hidden">

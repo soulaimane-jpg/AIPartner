@@ -13,7 +13,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { defineAction, fail } from "@/lib/actions/define";
-import { queryOne, updateRows, insertRow } from "@/lib/db";
+import { queryOne, updateRows } from "@/lib/db";
+import { notify, notifyAdmins } from "@/lib/notify";
 
 const PartnerMeetingSlot = z.object({
   startsAt: z.string().min(1).datetime({ offset: true }).or(z.string().min(1)),
@@ -79,27 +80,21 @@ export const partnerProposeMeetingAction = defineAction({
     );
 
     if (brief) {
-      await insertRow("Notification", {
-        userId: brief.ownerId,
-        type: "partner.meeting_proposed",
-        title: "Partner proposed meeting times",
-        message: `A partner has proposed ${proposedSlots.length} time slot${proposedSlots.length > 1 ? "s" : ""} for an alignment call on "${brief.title}".`,
+      await notify({
+        event: "meeting.proposed",
+        recipients: [{ userId: brief.ownerId }],
+        vars: { briefTitle: brief.title },
         link: `/briefs/${briefId}/preview`,
+        briefId,
       });
     }
 
-    const admins = await (await import("@/lib/db")).query<{ id: string }>(
-      `SELECT "id" FROM "User" WHERE "role" = 'ADMIN'`,
-    );
-    for (const a of admins) {
-      await insertRow("Notification", {
-        userId: a.id,
-        type: "partner.meeting_proposed",
-        title: "Partner proposed meeting slots",
-        message: `Partner proposed ${proposedSlots.length} meeting slot${proposedSlots.length > 1 ? "s" : ""} for "${brief?.title ?? "a brief"}". Confirm one to schedule the alignment call.`,
-        link: `/admin/briefs/${briefId}`,
-      });
-    }
+    await notifyAdmins({
+      event: "meeting.proposed",
+      vars: { briefTitle: brief?.title ?? "a brief" },
+      link: `/admin/briefs/${briefId}`,
+      briefId,
+    });
 
     revalidatePath(`/partner/briefs/${briefId}`);
     revalidatePath(`/admin/briefs/${briefId}`);

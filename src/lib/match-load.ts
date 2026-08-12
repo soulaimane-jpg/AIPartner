@@ -15,6 +15,7 @@ import type {
   ProjectBriefRow,
 } from "@/lib/db/rows";
 import { computeMatch, type MatchBreakdown } from "@/lib/match-score";
+import { loadPartnerPerformance } from "@/lib/partner-performance";
 import {
   computeMatchV2,
   deriveSubstantiatedTagIds,
@@ -230,9 +231,11 @@ export async function scorePartnersForBrief(
   const out = new Map<string, UnifiedMatch>();
   if (partners.length === 0) return out;
 
-  const [requirements, capabilities] = await Promise.all([
+  const [requirements, capabilities, performance] = await Promise.all([
     loadBriefRequirements(brief),
     loadPartnerCapabilities(partners.map((p) => p.id)),
+    // Feedback loop: what these partners actually delivered before.
+    loadPartnerPerformance(partners.map((p) => p.id), { now }),
   ]);
 
   // If the brief itself resolved to no tags there is nothing for the tag engine
@@ -253,7 +256,11 @@ export async function scorePartnersForBrief(
         0;
 
     if (briefHasTags && partnerHasTags) {
-      const v2 = computeMatchV2(requirements, caps, { now });
+      const v2 = computeMatchV2(
+        { ...requirements },
+        { ...caps, performance: performance.get(partner.id) ?? null },
+        { now },
+      );
       out.set(partner.id, {
         partnerId: partner.id,
         score: v2.score,

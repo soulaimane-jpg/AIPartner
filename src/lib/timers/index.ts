@@ -21,6 +21,10 @@ export const TIMER_TYPES = [
   "proposal_submit",
   "company_select",
   "stagger_release",
+  // Admin-side obligations. Without these the only party with no
+  // enforced deadline was the one that most often blocks the funnel.
+  "triage",
+  "reveal_to_meeting",
 ] as const;
 export type TimerType = (typeof TIMER_TYPES)[number];
 

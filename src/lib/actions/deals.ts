@@ -15,6 +15,7 @@ import { defineAction, fail } from "@/lib/actions/define";
 import { queryOne, insertRow, tx } from "@/lib/db";
 import { transitionLead, getLeadState } from "@/lib/state-machine/lead";
 import { userActor } from "@/lib/state-machine/transition";
+import { satisfyTimer } from "@/lib/timers";
 import { notifyAdmins, notifyCompanyUsers } from "@/lib/notify";
 
 // ─── Meetings scheduled (lead transition) ─────────────────────
@@ -32,6 +33,7 @@ export const adminMarkMeetingsScheduledAction = defineAction({
       to: "MEETINGS_SCHEDULED",
       actor: userActor(ctx.user!.id, ctx.user!.companyId),
     });
+    await satisfyTimer("brief", briefId, "reveal_to_meeting");
     revalidatePath(`/admin/briefs/${briefId}`);
     return { ok: true as const };
   },

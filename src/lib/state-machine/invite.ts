@@ -7,6 +7,8 @@
  * remain readable; new flows write the new states.
  *
  *   INVITED ─► PARTNER_ACCEPTED ─► PROPOSAL_SUBMITTED ─► QC_PASSED ─► SELECTED
+ *                    ▲                    │ (partner withdraws pre-QC)
+ *                    └────────────────────┘
  *      │             │                                        └────► NOT_SELECTED
  *      │             ├─► EXTENSION_REQUESTED ─► PARTNER_ACCEPTED (grant/deny)
  *      │             └─► PROPOSAL_EXPIRED (T2)
@@ -55,7 +57,9 @@ const INVITE_TRANSITIONS: Partial<Record<InviteState, readonly InviteState[]>> =
   // Admin may re-open an expired invite (audit-logged) → back to accepted.
   PROPOSAL_EXPIRED: ["PARTNER_ACCEPTED", "WITHDRAWN"],
   EXPIRED: ["INVITED", "WITHDRAWN"], // admin re-invite
-  PROPOSAL_SUBMITTED: ["QC_PASSED", "WITHDRAWN"],
+  // PARTNER_ACCEPTED = the partner withdrew their proposal before QC
+  // and is back inside their (unchanged) T2 window.
+  PROPOSAL_SUBMITTED: ["QC_PASSED", "WITHDRAWN", "PARTNER_ACCEPTED"],
   QC_PASSED: ["SELECTED", "NOT_SELECTED", "WITHDRAWN"],
   SELECTED: [],
   NOT_SELECTED: [],

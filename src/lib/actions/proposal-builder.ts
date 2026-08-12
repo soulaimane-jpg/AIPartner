@@ -29,7 +29,7 @@ import { transitionProposal } from "@/lib/state-machine/proposal";
 import { transitionInvite } from "@/lib/state-machine/invite";
 import { transitionLead, getLeadState } from "@/lib/state-machine/lead";
 import { userActor } from "@/lib/state-machine/transition";
-import { satisfyTimer } from "@/lib/timers";
+import { satisfyTimer, startTimer } from "@/lib/timers";
 import { getSetting } from "@/lib/settings";
 import { notify, notifyAdmins } from "@/lib/notify";
 
@@ -309,5 +309,107 @@ export const submitStructuredProposalAction = defineAction({
     revalidatePath(`/partner/briefs/${proposal!.briefId}`);
     revalidatePath(`/admin/briefs/${proposal!.briefId}`);
     return { submissionRank };
+  },
+});
+
+/**
+ * Partner withdraws their own submitted proposal back to DRAFT.
+ *
+ * Only before QC picks it up: once the proposal is in QC — and
+ * certainly once the anonymized comparison has been released to the
+ * customer — withdrawal would rewrite something the other side has
+ * already seen, so it is refused and the partner must talk to an admin.
+ *
+ * The T2 deadline is deliberately NOT extended: the timer is restarted
+ * against the original deadline so withdrawing can't buy extra time.
+ */
+export const withdrawProposalAction = defineAction({
+  name: "proposal.withdraw",
+  input: z.object({
+    matchId: z.string().min(1),
+    reason: z.string().trim().max(500).optional(),
+  }),
+  permission: "proposal.submit",
+  rateLimit: { scope: "proposal.withdraw", limit: 10, windowSec: 60 },
+  handler: async ({ matchId, reason }, ctx) => {
+    const proposal = await queryOne<
+      ProposalRow & {
+        matchStatus: string;
+        proposalDeadlineAt: Date | null;
+        briefTitle: string;
+        partnerName: string;
+      }
+    >(
+      `SELECT p.*, m."status" AS "matchStatus", m."proposalDeadlineAt",
+              b."title" AS "briefTitle", c."name" AS "partnerName"
+       FROM "Proposal" p
+       JOIN "Match" m ON m."id" = p."matchId"
+       JOIN "ProjectBrief" b ON b."id" = p."briefId"
+       JOIN "Company" c ON c."id" = p."partnerId"
+       WHERE p."matchId" = $1`,
+      [matchId],
+    );
+    if (!proposal) fail({ code: "NOT_FOUND", resource: "Proposal" });
+    if (proposal!.partnerId !== ctx.user?.companyId) {
+      fail({ code: "FORBIDDEN", reason: "Not your proposal" });
+    }
+    if (proposal!.status !== "SUBMITTED") {
+      fail({
+        code: "CONFLICT",
+        reason:
+          "Only a submitted proposal that hasn't entered QC can be withdrawn.",
+      });
+    }
+
+    const leadState = await getLeadState(proposal!.briefId);
+    if (leadState && leadState !== "SENT_TO_PARTNERS" && leadState !== "PROPOSALS_IN_REVIEW") {
+      fail({
+        code: "CONFLICT",
+        reason:
+          "The customer comparison has already been released — contact an admin to change your proposal.",
+      });
+    }
+
+    const actor = userActor(ctx.user!.id, ctx.user!.companyId);
+    await transitionProposal({
+      proposalId: proposal!.id,
+      to: "DRAFT",
+      actor,
+      reason: reason ?? "Withdrawn by partner",
+      data: { submittedAt: null },
+    });
+    await transitionInvite({
+      matchId,
+      to: "PARTNER_ACCEPTED",
+      actor,
+      reason: reason ?? "Proposal withdrawn by partner",
+    });
+
+    // Re-arm T2 against the ORIGINAL deadline (never extended).
+    if (proposal!.proposalDeadlineAt && proposal!.proposalDeadlineAt > new Date()) {
+      await startTimer({
+        entityType: "match",
+        entityId: matchId,
+        timerType: "proposal_submit",
+        deadlineAt: proposal!.proposalDeadlineAt,
+        meta: { briefId: proposal!.briefId, matchId },
+      });
+    }
+
+    await notifyAdmins({
+      event: "proposal.withdrawn_admin",
+      vars: {
+        briefTitle: proposal!.briefTitle,
+        partnerName: proposal!.partnerName,
+        reason: reason ?? "no reason given",
+      },
+      link: `/admin/briefs/${proposal!.briefId}`,
+      briefId: proposal!.briefId,
+      matchId,
+    });
+
+    revalidatePath(`/partner/briefs/${proposal!.briefId}`);
+    revalidatePath(`/admin/briefs/${proposal!.briefId}`);
+    return { ok: true as const };
   },
 });

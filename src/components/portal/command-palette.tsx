@@ -18,6 +18,7 @@ import {
   Sparkles,
   Activity,
   Trophy,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -253,6 +254,7 @@ function buildEntries(
       { id: "nav:opportunities", label: "Opportunities", group: "Navigate", icon: Inbox, href: "/partner/opportunities" },
       { id: "nav:pipeline", label: "Pipeline", group: "Navigate", icon: TrendingUp, href: "/partner/pipeline" },
       { id: "nav:won", label: "Won engagements", group: "Navigate", icon: Trophy, href: "/partner/won" },
+      { id: "nav:analytics", label: "Analytics", group: "Navigate", icon: BarChart3, href: "/partner/analytics" },
       { id: "nav:profile", label: "Company profile", group: "Navigate", icon: Settings, href: "/partner/profile" },
     );
   }

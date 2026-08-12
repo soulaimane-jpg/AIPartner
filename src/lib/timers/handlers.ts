@@ -7,6 +7,8 @@
  * | proposal (T2)    | Invite → PROPOSAL_EXPIRED; admin notified; re-openable |
  * | company_select   | Admin notified for manual chase — **no auto-cancel**   |
  * | stagger_release  | Next comparison column auto-releases (if QC-passed)    |
+ * | triage           | Admin notified: brief still untriaged past the SLA     |
+ * | reveal_to_meeting| Admin notified: meetings not scheduled after reveal    |
  *
  * All transitions run as the `system` actor and are audit-logged.
  */
@@ -159,6 +161,46 @@ export async function runExpiryAction(timer: TimerInstanceRow): Promise<void> {
       const briefId =
         typeof meta.briefId === "string" ? meta.briefId : timer.entityId;
       await releaseNextComparisonColumn(briefId);
+      return;
+    }
+
+    // Admin-side SLAs. Like company_select these escalate rather than
+    // mutate the lead: a missed internal deadline is an ops problem,
+    // not a reason to move the customer's brief.
+    case "triage": {
+      const brief = await queryOne<{ id: string; title: string }>(
+        'SELECT "id", "title" FROM "ProjectBrief" WHERE "id" = $1',
+        [timer.entityId],
+      );
+      if (!brief) return;
+      const state = await getLeadState(brief.id);
+      // Still waiting on us?
+      if (state !== "SUBMITTED" && state !== "IN_TRIAGE") return;
+      await notifyAdmins({
+        event: "triage.overdue_admin",
+        vars: { briefTitle: brief.title },
+        link: `/admin/briefs/${brief.id}/triage`,
+        briefId: brief.id,
+        idemKey: timer.id,
+      });
+      return;
+    }
+
+    case "reveal_to_meeting": {
+      const brief = await queryOne<{ id: string; title: string }>(
+        'SELECT "id", "title" FROM "ProjectBrief" WHERE "id" = $1',
+        [timer.entityId],
+      );
+      if (!brief) return;
+      const state = await getLeadState(brief.id);
+      if (state !== "REVEAL_APPROVED") return; // meetings already scheduled
+      await notifyAdmins({
+        event: "meetings.overdue_admin",
+        vars: { briefTitle: brief.title },
+        link: `/admin/briefs/${brief.id}`,
+        briefId: brief.id,
+        idemKey: timer.id,
+      });
       return;
     }
 

@@ -53,6 +53,34 @@ export const BRIEF_STAGES = [
 ] as const;
 export type BriefStage = (typeof BRIEF_STAGES)[number];
 
+/**
+ * Canonical lead pipeline states (plan-A §5.1). `BRIEF_STAGES` above
+ * is the legacy projection of these, derived by the state machine.
+ *
+ * Lives here rather than in `state-machine/lead.ts` because that
+ * module is `server-only` and these values are needed by client-safe
+ * schemas and UI labels.
+ */
+export const LEAD_STATES = [
+  "DRAFT",
+  "SUBMITTED",
+  "IN_TRIAGE",
+  "CLARIFICATION_NEEDED",
+  "LEAD_APPROVED",
+  "PARTNERS_SELECTED",
+  "SENT_TO_PARTNERS",
+  "PROPOSALS_IN_REVIEW",
+  "COMPARISON_RELEASED",
+  "COMPANY_SELECTED",
+  "REVEAL_APPROVED",
+  "MEETINGS_SCHEDULED",
+  "COMPLETED",
+  "DROPPED_OFF",
+  "CANCELLED",
+  "STALLED",
+] as const;
+export type LeadState = (typeof LEAD_STATES)[number];
+
 export const BRIEF_STATUSES = ["DRAFT", "ACTIVE", "ARCHIVED"] as const;
 export type BriefStatus = (typeof BRIEF_STATUSES)[number];
 

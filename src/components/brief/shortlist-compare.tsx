@@ -22,8 +22,8 @@ import { narrowShortlistAction } from "@/lib/actions/admin";
 
 export type ShortlistCard = {
   matchId: string;
-  partnerName: string;
-  partnerTagline: string | null;
+  /** "Partner A" pre-reveal, the real name once revealed. */
+  displayLabel: string;
   status:
     | "INVITED"
     | "PARTNER_ACCEPTED"
@@ -32,20 +32,24 @@ export type ShortlistCard = {
     | "PARTNER_DECLINED";
   acceptedAt: string | null;
   customerPriority: number | null;
-  // Comparison criteria
-  headquarters: string | null;
-  officeLocations: string[];
+  // Comparison criteria — capability only pre-reveal.
+  regions: string[];
   languages: string[];
   specializations: string[];
   expertiseAreas: string[];
   caseStudies: {
-    title: string;
-    industry?: string;
-    summary?: string;
-    link?: string;
+    industry: string | null;
+    summary: string | null;
+    title: string | null;
+    link: string | null;
   }[];
   gcpTier: string | null;
   certifications: { name: string; count?: number; level?: string }[];
+  // Post-reveal only.
+  revealedPartnerName: string | null;
+  revealedTagline: string | null;
+  revealedHeadquarters: string | null;
+  revealedOfficeLocations: string[];
 };
 
 const STATUS_COPY: Record<ShortlistCard["status"], { label: string; tone: "amber" | "success" | "muted" | "danger" }> = {
@@ -178,12 +182,18 @@ export function ShortlistCompare({
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h3 className="text-[15px] font-semibold text-foreground">
-                      {c.partnerName}
+                      {c.displayLabel}
                     </h3>
-                    {c.partnerTagline && (
+                    {c.revealedTagline ? (
                       <p className="text-[12.5px] text-muted-foreground mt-0.5">
-                        {c.partnerTagline}
+                        {c.revealedTagline}
                       </p>
+                    ) : (
+                      !c.revealedPartnerName && (
+                        <p className="text-[12.5px] text-muted-foreground mt-0.5">
+                          Identity stays hidden until you pick your final 3
+                        </p>
+                      )
                     )}
                   </div>
                   {pickIdx >= 0 && (
@@ -212,11 +222,15 @@ export function ShortlistCompare({
                   title="Location & language"
                 >
                   <div className="text-[12.5px] text-foreground">
-                    {c.headquarters || c.officeLocations[0] || "Location not provided"}
-                    {c.officeLocations.length > 1 && (
+                    {c.revealedHeadquarters ||
+                      c.revealedOfficeLocations[0] ||
+                      (c.regions.length > 0
+                        ? c.regions.slice(0, 3).join(", ")
+                        : "Location not provided")}
+                    {c.revealedOfficeLocations.length > 1 && (
                       <span className="text-muted-foreground">
                         {" "}
-                        · +{c.officeLocations.length - 1} other offices
+                        · +{c.revealedOfficeLocations.length - 1} other offices
                       </span>
                     )}
                   </div>
@@ -271,7 +285,9 @@ export function ShortlistCompare({
                           key={i}
                           className="text-[12px] text-foreground"
                         >
-                          <div className="font-medium">{cs.title}</div>
+                          <div className="font-medium">
+                            {cs.title ?? cs.summary ?? cs.industry ?? "Case study"}
+                          </div>
                           {cs.industry && (
                             <div className="text-[11px] text-muted-foreground">
                               {cs.industry}
@@ -358,7 +374,7 @@ export function ShortlistCompare({
             <div className="text-[12px] text-muted-foreground">
               Your priority order:{" "}
               {picked
-                .map((id, i) => `${i + 1}. ${cards.find((c) => c.matchId === id)?.partnerName ?? ""}`)
+                .map((id, i) => `${i + 1}. ${cards.find((c) => c.matchId === id)?.displayLabel ?? ""}`)
                 .join(" · ")}
             </div>
           </div>

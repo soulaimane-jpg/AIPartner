@@ -2,6 +2,11 @@ import { query } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { safeJsonParse, timeAgo } from "@/lib/utils";
+import { assessDomainEvidence } from "@/lib/partner-verification";
+import {
+  PartnerVerificationQueue,
+  type PendingPartner,
+} from "@/components/admin/partner-verification-queue";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +18,20 @@ export default async function AdminPartnersPage() {
     tier: string | null;
     tagline: string | null;
     specializations: string | null;
+    verificationStatus: string;
+    rejectionReason: string | null;
+    signupEmailDomain: string | null;
+    website: string | null;
+    directoryUrl: string | null;
+    contactEmails: string[] | null;
     usersCount: number;
     matchesCount: number;
     proposalsCount: number;
   }>(
     `SELECT c."id", c."name", c."createdAt",
-            pp."tier", pp."tagline", pp."specializations",
+            pp."tier", pp."tagline", pp."specializations", pp."directoryUrl",
+            c."verificationStatus", c."rejectionReason", c."signupEmailDomain", c."website",
+            (SELECT ARRAY_AGG(u."email") FROM "User" u WHERE u."companyId" = c."id") AS "contactEmails",
             (SELECT COUNT(*) FROM "User" u WHERE u."companyId" = c."id")::int AS "usersCount",
             (SELECT COUNT(*) FROM "Match" m WHERE m."partnerId" = c."id")::int AS "matchesCount",
             (SELECT COUNT(*) FROM "Proposal" pr WHERE pr."partnerId" = c."id")::int AS "proposalsCount"
@@ -28,6 +41,30 @@ export default async function AdminPartnersPage() {
      ORDER BY c."createdAt" DESC`,
   );
 
+  const pending: PendingPartner[] = partners
+    .filter((p) => p.verificationStatus === "PENDING")
+    .map((p) => {
+      const evidence = p.signupEmailDomain
+        ? assessDomainEvidence({
+            email: `noreply@${p.signupEmailDomain}`,
+            website: p.website,
+            directoryUrl: p.directoryUrl,
+          })
+        : null;
+      return {
+        id: p.id,
+        name: p.name,
+        createdAt: p.createdAt.toISOString(),
+        signupEmailDomain: p.signupEmailDomain,
+        website: p.website,
+        directoryUrl: p.directoryUrl,
+        domainMatches: evidence?.matched ?? false,
+        domainReason: evidence?.reason ?? "no_website_on_file",
+        contactEmails: p.contactEmails ?? [],
+        usersCount: p.usersCount,
+      };
+    });
+
   return (
     <div className="space-y-8 pb-20">
       <div className="flex flex-col gap-1">
@@ -36,6 +73,8 @@ export default async function AdminPartnersPage() {
           Verified Engineering Entities & Capability Matrix
         </p>
       </div>
+
+      <PartnerVerificationQueue partners={pending} />
 
       <Card className="bg-white border-slate-200 shadow-sm">
         <CardHeader className="border-b border-slate-200 bg-white px-8 py-6">
@@ -61,6 +100,18 @@ export default async function AdminPartnersPage() {
                         <h3 className="text-2xl font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{p.name}</h3>
                         <Badge variant="outline" className="border-blue-200 text-blue-600 bg-blue-50 text-xs font-semibold tracking-widest px-3">
                           {p.tier ?? "MEMBER"}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className={`text-xs font-semibold tracking-widest px-3 ${
+                            p.verificationStatus === "APPROVED"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              : p.verificationStatus === "REJECTED"
+                                ? "border-rose-200 bg-rose-50 text-rose-700"
+                                : "border-amber-200 bg-amber-50 text-amber-800"
+                          }`}
+                        >
+                          {p.verificationStatus}
                         </Badge>
                       </div>
                       <div className="text-sm font-medium text-slate-500 font-mono uppercase tracking-wider">

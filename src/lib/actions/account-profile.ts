@@ -6,6 +6,13 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { queryOne, updateRows } from "@/lib/db";
 import { deleteObject, StorageNotConfiguredError, uploadBuffer } from "@/lib/storage/gcs";
+import {
+  VERIFICATION_TOKEN_TTL_HOURS,
+  createVerificationToken,
+  verificationUrl,
+} from "@/lib/auth/email-verification";
+import { renderEmailVerificationEmail } from "@/lib/email-templates";
+import { sendEmail } from "@/lib/email/provider";
 
 const profileSchema = z.object({
   name: z.string().trim().min(2, "Enter your full name").max(100),
@@ -38,6 +45,47 @@ export async function updateAccountProfileAction(raw: unknown): Promise<AccountP
     location: parsed.data.location || null,
   });
   revalidateAccount();
+  return { ok: true };
+}
+
+/**
+ * Re-send the confirm-your-email link. Rate-limited by the token TTL:
+ * minting a new one invalidates the previous link, so this can't be
+ * used to flood an inbox with usable links.
+ */
+export async function resendVerificationEmailAction(): Promise<AccountProfileResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "You must be signed in." };
+
+  const user = await queryOne<{
+    email: string;
+    name: string | null;
+    emailVerified: Date | null;
+  }>('SELECT "email", "name", "emailVerified" FROM "User" WHERE "id" = $1', [
+    session.user.id,
+  ]);
+  if (!user) return { ok: false, error: "Account not found." };
+  if (user.emailVerified) return { ok: true };
+
+  try {
+    const token = await createVerificationToken({
+      userId: session.user.id,
+      email: user.email,
+    });
+    const { subject, body } = renderEmailVerificationEmail({
+      recipientName: user.name ?? user.email.split("@")[0],
+      verificationUrl: verificationUrl(token),
+      expiresIn: `${VERIFICATION_TOKEN_TTL_HOURS} hours`,
+    });
+    await sendEmail({
+      toAddress: user.email,
+      subject,
+      body,
+      kind: "email-verification",
+    });
+  } catch {
+    return { ok: false, error: "Could not send the email. Try again shortly." };
+  }
   return { ok: true };
 }
 

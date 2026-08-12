@@ -160,7 +160,7 @@ export default async function BriefProposalsPage({
             <ProposalCompareTable
               proposals={proposals.map((p) => ({
                 id: p.proposalId,
-                partnerName: p.displayLabel,
+                displayLabel: p.displayLabel,
                 tagline: p.revealedTagline ?? "Anonymized until you select & reveal",
                 tier: p.tier ?? "PARTNER",
                 submittedFirst: p.submittedFirst,
@@ -218,7 +218,13 @@ function KpiTile({
 
 type ProposalRow = {
   id: string;
-  partnerName: string;
+  /**
+   * Firewalled label — "Partner A" pre-reveal, the real name after.
+   * Deliberately NOT called `partnerName`: this row is built from the
+   * serializer output, and reusing the raw column name is how identity
+   * fields end up rendered by accident.
+   */
+  displayLabel: string;
   tagline: string;
   tier: string;
   submittedFirst?: boolean;
@@ -276,7 +282,7 @@ function ProposalCompareTable({
                   )}
                 >
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[14px] font-semibold text-foreground">{p.partnerName}</span>
+                    <span className="text-[14px] font-semibold text-foreground">{p.displayLabel}</span>
                     {p.id === winnerId && (
                       <Badge variant="success" className="text-[10px] uppercase tracking-wider">
                         <Trophy className="h-2.5 w-2.5" /> Selected

@@ -22,7 +22,16 @@ import { defineAction, fail } from "@/lib/actions/define";
 import { query, queryOne, insertRow, tx } from "@/lib/db";
 import { notify, notifyAdmins } from "@/lib/notify";
 
-const CONTEXT_TYPES = ["brief_triage", "proposal_qc", "partner_question"] as const;
+const CONTEXT_TYPES = [
+  "brief_triage",
+  "proposal_qc",
+  "partner_question",
+  // Customer → a specific anonymized partner, about their proposal,
+  // BEFORE selection. Previously the customer could only compare on
+  // what was written and had no way to ask a follow-up without
+  // breaking anonymity.
+  "proposal_question",
+] as const;
 
 function audienceOf(role: string): "company" | "partner" | "admin" {
   if (role === "ADMIN") return "admin";
@@ -47,6 +56,10 @@ function nextStatus(
         : audience === "partner"
           ? "awaiting_company"
           : "open";
+    case "proposal_question":
+      // Mirror image of partner_question: the customer asks, the
+      // partner answers, both sides stay anonymous throughout.
+      return audience === "company" ? "awaiting_partner" : "awaiting_company";
     default:
       return "open";
   }
@@ -125,6 +138,7 @@ async function notifyThreadCounterparty(opts: {
       }
       return;
     case "partner_question":
+    case "proposal_question":
       if (opts.authorAudience === "partner") {
         // Partner asked → company answers (anonymized label).
         await notify({

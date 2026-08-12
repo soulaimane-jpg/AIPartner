@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { defineAction, fail } from "@/lib/actions/define";
 import { genId, insertRow, queryOne, tx } from "@/lib/db";
+import { notify } from "@/lib/notify";
 import { audit } from "@/lib/audit";
 import { getBriefCapabilities, BRIEF_ACCESS_ROLES } from "@/lib/workspace-access";
 
@@ -34,7 +35,7 @@ export const requestBriefAccessAction = defineAction({
     );
     if (existing) return { status: "pending" as const };
 
-    await tx(async (client) => {
+    const targets = await tx(async (client) => {
       await insertRow(
         "BriefAccessRequest",
         { briefId, requesterId: ctx.user!.id, status: "PENDING" },
@@ -45,27 +46,27 @@ export const requestBriefAccessAction = defineAction({
          WHERE "briefId" = $1 AND "status" = 'ACTIVE' AND "role" = 'EDITOR'`,
         [briefId],
       );
-      const recipients = recipientsResult.rows;
       const ownerResult = await client.query<{ ownerId: string; title: string }>(
         'SELECT "ownerId", "title" FROM "ProjectBrief" WHERE "id" = $1',
         [briefId],
       );
       const owner = ownerResult.rows[0] ?? null;
-      const targetIds = new Set(recipients.map((row) => row.userId));
+      const targetIds = new Set(recipientsResult.rows.map((row) => row.userId));
       if (owner) targetIds.add(owner.ownerId);
-      for (const userId of targetIds) {
-        await insertRow(
-          "Notification",
-          {
-            userId,
-            type: "brief.access_requested",
-            title: `${ctx.user!.name ?? ctx.user!.email} requested brief access`,
-            message: `Review access for “${owner?.title ?? "Project brief"}”.`,
-            link: `/briefs/${briefId}/preview#access`,
-          },
-          { client },
-        );
-      }
+      return { targetIds: [...targetIds], title: owner?.title ?? "Project brief" };
+    });
+
+    // Outside the transaction: notifications enqueue email, and a mail
+    // problem must not roll back the access request itself.
+    await notify({
+      event: "brief.access_requested",
+      recipients: targets.targetIds.map((userId) => ({ userId })),
+      vars: {
+        requesterName: ctx.user!.name ?? ctx.user!.email ?? "A colleague",
+        briefTitle: targets.title,
+      },
+      link: `/briefs/${briefId}/preview#access`,
+      briefId,
     });
     await audit(ctx, { kind: "access_requested", targetType: "ProjectBrief", targetId: briefId });
     revalidatePath(`/briefs/${briefId}/preview`);
@@ -108,17 +109,14 @@ export const grantBriefAccessAction = defineAction({
         `UPDATE "BriefAccessRequest" SET "status" = 'GRANTED', "resolvedById" = $2, "resolvedAt" = NOW(), "updatedAt" = NOW() WHERE "id" = $1`,
         [requestId, ctx.user!.id],
       );
-      await insertRow(
-        "Notification",
-        {
-          userId: request.requesterId,
-          type: "brief.access_granted",
-          title: "Brief access granted",
-          message: `You can now open this brief as ${role.toLowerCase()}.`,
-          link: `/briefs/${request.briefId}/preview`,
-        },
-        { client },
-      );
+    });
+
+    await notify({
+      event: "brief.access_granted",
+      recipients: [{ userId: request.requesterId }],
+      vars: { role: role.toLowerCase() },
+      link: `/briefs/${request.briefId}/preview`,
+      briefId: request.briefId,
     });
     await audit(ctx, {
       kind: "access_granted",

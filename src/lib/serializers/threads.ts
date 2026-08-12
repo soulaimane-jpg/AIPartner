@@ -62,7 +62,7 @@ export async function loadThreadsForAudience(opts: {
   // Partners never see brief_triage (admin ↔ company) threads.
   const contextFilter =
     opts.audience === "partner"
-      ? ["proposal_qc", "partner_question"]
+      ? ["proposal_qc", "partner_question", "proposal_question"]
       : (opts.contextTypes ?? null);
   const threadRows = await query<ClarificationThreadRow>(
     `SELECT * FROM "ClarificationThread"

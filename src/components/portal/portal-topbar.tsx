@@ -72,7 +72,7 @@ export function PortalTopBar({
       className={cn(
         "sticky top-0 z-30 flex h-14 items-center gap-3 border-b px-3 backdrop-blur-md sm:px-5",
         light
-          ? "border-indigo-100/80 bg-white/90 shadow-[0_8px_24px_-24px_hsl(245_82%_42%/0.34)]"
+          ? "border-primary/10 bg-white/90 shadow-[0_8px_24px_-24px_hsl(214_82%_42%/0.3)]"
           : "border-border/90 bg-card/95 shadow-[0_1px_0_hsl(var(--line)/0.7)]",
       )}
       data-appearance={appearance}

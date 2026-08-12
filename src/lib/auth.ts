@@ -11,6 +11,7 @@ import type { UserRole } from "@/lib/enums";
 import { registerSession } from "@/lib/sessions";
 import { audit } from "@/lib/audit";
 import { sha256Hex } from "@/lib/crypto";
+import { emailDomain } from "@/lib/partner-verification";
 import type { ActionContext } from "@/lib/rbac/types";
 import { authConfig } from "@/lib/auth.config";
 import {
@@ -277,9 +278,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return "/auth/sign-up?error=PartnerWorkEmailRequired";
           }
           dbUser = await tx(async (client) => {
+            // Unverified until an admin approves — same gate as the
+            // credentials path, so OAuth isn't a way around vetting.
             const company = await insertRow<{ id: string }>(
               "Company",
-              { name: companyName, kind: "PARTNER" },
+              {
+                name: companyName,
+                kind: "PARTNER",
+                verificationStatus: "PENDING",
+                signupEmailDomain: emailDomain(email),
+              },
               { client },
             );
             await insertRow(

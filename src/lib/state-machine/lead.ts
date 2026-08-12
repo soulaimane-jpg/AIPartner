@@ -10,27 +10,11 @@
 
 import "server-only";
 import { queryOne, updateRows } from "@/lib/db";
+import { LEAD_STATES, type LeadState } from "@/lib/enums";
 import { auditTransition, type TransitionActor } from "./transition";
 
-export const LEAD_STATES = [
-  "DRAFT",
-  "SUBMITTED",
-  "IN_TRIAGE",
-  "CLARIFICATION_NEEDED",
-  "LEAD_APPROVED",
-  "PARTNERS_SELECTED",
-  "SENT_TO_PARTNERS",
-  "PROPOSALS_IN_REVIEW",
-  "COMPARISON_RELEASED",
-  "COMPANY_SELECTED",
-  "REVEAL_APPROVED",
-  "MEETINGS_SCHEDULED",
-  "COMPLETED",
-  "DROPPED_OFF",
-  "CANCELLED",
-  "STALLED",
-] as const;
-export type LeadState = (typeof LEAD_STATES)[number];
+// Single definition, shared with client-safe schemas/UI labels.
+export { LEAD_STATES, type LeadState } from "@/lib/enums";
 
 /**
  * §5.1 transition table. `CANCELLED` is reachable from any state via
@@ -77,6 +61,33 @@ export const LEAD_STATE_TO_LEGACY_STAGE: Record<LeadState, string> = {
   CANCELLED: "CLOSED",
   STALLED: "REVIEW",
 };
+
+/**
+ * Linear progress order for the happy path. Used to decide whether a
+ * requested state is "behind" where the lead already is, so an
+ * opportunistic advance can no-op instead of throwing.
+ *
+ * Terminal/■side states are deliberately absent — they are never the
+ * target of an opportunistic advance.
+ */
+const LEAD_PROGRESS_ORDER: readonly LeadState[] = [
+  "DRAFT",
+  "SUBMITTED",
+  "IN_TRIAGE",
+  "LEAD_APPROVED",
+  "PARTNERS_SELECTED",
+  "SENT_TO_PARTNERS",
+  "PROPOSALS_IN_REVIEW",
+  "COMPARISON_RELEASED",
+  "COMPANY_SELECTED",
+  "REVEAL_APPROVED",
+  "MEETINGS_SCHEDULED",
+  "COMPLETED",
+];
+
+function progressIndex(state: LeadState): number {
+  return LEAD_PROGRESS_ORDER.indexOf(state);
+}
 
 /**
  * Best-effort mapping for briefs created before `leadState` existed
@@ -187,6 +198,37 @@ export async function transitionLead(
   });
 
   return opts.to;
+}
+
+/**
+ * Opportunistic advance — the state-machine replacement for the old
+ * `UPDATE "ProjectBrief" SET "stage" = … WHERE "stage" IN (…)` writes.
+ *
+ * Those conditional updates silently did nothing when the brief was
+ * somewhere else in the pipeline; this preserves that behaviour while
+ * keeping `transitionLead` the only writer:
+ *
+ *   - already at `to`, or past it  → no-op, returns the current state
+ *   - the edge is legal            → transitions (and audits)
+ *   - the edge is illegal          → no-op, returns the current state
+ *
+ * Use `transitionLead` directly when a caller *requires* the hop and
+ * an illegal edge should surface as an error.
+ */
+export async function advanceLeadIfAllowed(
+  opts: TransitionLeadOptions,
+): Promise<LeadState | null> {
+  const from = await getLeadState(opts.briefId);
+  if (!from) return null;
+  if (from === opts.to) return from;
+
+  const fromIdx = progressIndex(from);
+  const toIdx = progressIndex(opts.to);
+  // Never walk the pipeline backwards.
+  if (fromIdx >= 0 && toIdx >= 0 && toIdx <= fromIdx) return from;
+
+  if (!canTransitionLead(from, opts.to)) return from;
+  return transitionLead(opts);
 }
 
 /** Admin cancellation — reachable from any non-cancelled state. */

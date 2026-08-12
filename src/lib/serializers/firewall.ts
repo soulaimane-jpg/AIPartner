@@ -232,6 +232,102 @@ export interface CompanyFacingProposalColumn {
  * populate exclusively when `revealed` (selected partner + reveal
  * event on the lead).
  */
+export interface CompanyFacingShortlistCard {
+  matchId: string;
+  /** "Partner A", "Partner B", … — the ONLY identity pre-reveal. */
+  displayLabel: string;
+  status: string;
+  acceptedAt: string | null;
+  customerPriority: number | null;
+  /** Coarse delivery regions — non-identifying, unlike an HQ address. */
+  regions: string[];
+  languages: string[];
+  specializations: string[];
+  expertiseAreas: string[];
+  /** Anonymized tier badge is allowed (non-identifying). */
+  gcpTier: string | null;
+  certifications: { name: string; count?: number; level?: string }[];
+  /**
+   * Case studies stripped of the title and link pre-reveal — both
+   * routinely name the partner or its clients.
+   */
+  caseStudies: { industry: string | null; summary: string | null; title: string | null; link: string | null }[];
+  /** Post-reveal only — null while firewalled. */
+  revealedPartnerName: string | null;
+  revealedTagline: string | null;
+  revealedHeadquarters: string | null;
+  revealedOfficeLocations: string[];
+}
+
+/**
+ * Build a company-facing shortlist card. The customer compares
+ * partners on capability alone until the reveal event; identity
+ * (name, tagline, HQ, offices, case-study titles/links) populates
+ * exclusively when `revealed`.
+ */
+export function serializeCompanyFacingShortlistCard(
+  input: {
+    match: {
+      id: string;
+      status: string;
+      placeholderLabel: string | null;
+      acceptedTermsAt: Date | null;
+      customerPriority: number | null;
+    };
+    partner?: { name: string; tagline?: string | null } | null;
+    profile?: {
+      headquarters?: string | null;
+      officeLocations?: string[];
+      regions?: string[];
+      languages?: string[];
+      specializations?: string[];
+      expertiseAreas?: string[];
+      gcpTier?: string | null;
+      certifications?: { name: string; count?: number; level?: string }[];
+      caseStudies?: {
+        title?: string;
+        industry?: string;
+        summary?: string;
+        link?: string;
+      }[];
+    } | null;
+    fallbackIndex: number;
+  },
+  opts: { revealed: boolean },
+): CompanyFacingShortlistCard {
+  const label =
+    input.match.placeholderLabel ??
+    `Partner ${String.fromCharCode(65 + input.fallbackIndex)}`;
+  const profile = input.profile ?? {};
+
+  return {
+    matchId: input.match.id,
+    displayLabel:
+      opts.revealed && input.partner ? input.partner.name : label,
+    status: input.match.status,
+    acceptedAt: input.match.acceptedTermsAt?.toISOString() ?? null,
+    customerPriority: input.match.customerPriority,
+    regions: profile.regions ?? [],
+    languages: profile.languages ?? [],
+    specializations: profile.specializations ?? [],
+    expertiseAreas: profile.expertiseAreas ?? [],
+    gcpTier: profile.gcpTier ?? null,
+    certifications: profile.certifications ?? [],
+    caseStudies: (profile.caseStudies ?? []).map((cs) => ({
+      industry: cs.industry ?? null,
+      summary: cs.summary ?? null,
+      title: opts.revealed ? (cs.title ?? null) : null,
+      link: opts.revealed ? (cs.link ?? null) : null,
+    })),
+    revealedPartnerName:
+      opts.revealed && input.partner ? input.partner.name : null,
+    revealedTagline:
+      opts.revealed && input.partner ? (input.partner.tagline ?? null) : null,
+    revealedHeadquarters: opts.revealed ? (profile.headquarters ?? null) : null,
+    revealedOfficeLocations: opts.revealed ? (profile.officeLocations ?? []) : [],
+  };
+}
+
 export function serializeCompanyFacingProposal(
   input: {
     proposal: {

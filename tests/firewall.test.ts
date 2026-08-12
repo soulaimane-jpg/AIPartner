@@ -14,6 +14,7 @@ import {
   isPartnerRevealed,
   isRevealActive,
   serializeCompanyFacingProposal,
+  serializeCompanyFacingShortlistCard,
   serializePartnerFacingBrief,
 } from "@/lib/serializers/firewall";
 
@@ -110,6 +111,86 @@ describe("company-facing proposal serializer", () => {
       { revealed: false },
     );
     expect(dto.submittedFirst).toBe(true);
+  });
+});
+
+describe("company-facing shortlist serializer", () => {
+  const shortlistInput = {
+    match: {
+      id: "match_1",
+      status: "PARTNER_ACCEPTED",
+      placeholderLabel: "Partner B",
+      acceptedTermsAt: new Date("2026-07-01T10:00:00Z"),
+      customerPriority: null,
+    },
+    partner: { name: "CloudCo BV", tagline: "GCP experts" },
+    profile: {
+      headquarters: "Amsterdam, NL",
+      officeLocations: ["Amsterdam", "Berlin"],
+      regions: ["EMEA"],
+      languages: ["English", "Dutch"],
+      specializations: ["Data Analytics"],
+      expertiseAreas: ["BigQuery"],
+      gcpTier: "PREMIER",
+      certifications: [{ name: "Professional Data Engineer", count: 12 }],
+      caseStudies: [
+        {
+          title: "CloudCo migrates Acme to BigQuery",
+          industry: "Manufacturing",
+          summary: "Warehouse migration in 12 weeks",
+          link: "https://cloudco.example/cases/acme",
+        },
+      ],
+    },
+    fallbackIndex: 1,
+  };
+
+  it("never exposes partner identity pre-reveal", () => {
+    const dto = serializeCompanyFacingShortlistCard(shortlistInput, {
+      revealed: false,
+    });
+    expect(dto.displayLabel).toBe("Partner B");
+    expect(dto.revealedPartnerName).toBeNull();
+    expect(dto.revealedTagline).toBeNull();
+    expect(dto.revealedHeadquarters).toBeNull();
+    expect(dto.revealedOfficeLocations).toEqual([]);
+    expect(JSON.stringify(dto)).not.toContain("CloudCo");
+    expect(JSON.stringify(dto)).not.toContain("Amsterdam");
+    expect(() => assertFirewallSafe(dto, "company")).not.toThrow();
+  });
+
+  it("strips case-study titles and links pre-reveal but keeps capability", () => {
+    const dto = serializeCompanyFacingShortlistCard(shortlistInput, {
+      revealed: false,
+    });
+    expect(dto.caseStudies[0].title).toBeNull();
+    expect(dto.caseStudies[0].link).toBeNull();
+    expect(dto.caseStudies[0].industry).toBe("Manufacturing");
+    expect(dto.specializations).toContain("Data Analytics");
+    expect(dto.regions).toEqual(["EMEA"]);
+    expect(dto.gcpTier).toBe("PREMIER");
+  });
+
+  it("falls back to an index-derived label when none assigned", () => {
+    const dto = serializeCompanyFacingShortlistCard(
+      {
+        ...shortlistInput,
+        match: { ...shortlistInput.match, placeholderLabel: null },
+        fallbackIndex: 2,
+      },
+      { revealed: false },
+    );
+    expect(dto.displayLabel).toBe("Partner C");
+  });
+
+  it("exposes identity only when revealed", () => {
+    const dto = serializeCompanyFacingShortlistCard(shortlistInput, {
+      revealed: true,
+    });
+    expect(dto.displayLabel).toBe("CloudCo BV");
+    expect(dto.revealedPartnerName).toBe("CloudCo BV");
+    expect(dto.revealedHeadquarters).toBe("Amsterdam, NL");
+    expect(dto.caseStudies[0].title).toContain("CloudCo");
   });
 });
 

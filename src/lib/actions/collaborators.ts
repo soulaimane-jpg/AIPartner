@@ -16,6 +16,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { defineAction, fail } from "@/lib/actions/define";
 import { queryOne, insertRow, updateRows } from "@/lib/db";
+import { notify } from "@/lib/notify";
 import { COLLABORATOR_ROLES, type CollaboratorRole } from "@/lib/enums";
 import { env } from "@/env";
 import { sendEmail } from "@/lib/email/provider";
@@ -294,12 +295,17 @@ export const approveBriefAsCollaboratorAction = defineAction({
       },
     );
 
-    await insertRow("Notification", {
-      userId: row!.briefOwnerId,
-      type: "collaborator.approved",
-      title: `${row!.name ?? row!.email} approved your SoW`,
-      message: `Your project brief "${row!.briefTitle}" has been approved by an internal reviewer.`,
+    await notify({
+      event: "collaborator.decision",
+      recipients: [{ userId: row!.briefOwnerId }],
+      vars: {
+        actorName: row!.name ?? row!.email,
+        decision: "approved",
+        briefTitle: row!.briefTitle,
+        note: "",
+      },
       link: `/briefs/${row!.briefId}/preview`,
+      briefId: row!.briefId,
     });
 
     revalidatePath(`/briefs/${row!.briefId}/preview`);
@@ -353,12 +359,17 @@ export const rejectBriefAsCollaboratorAction = defineAction({
       content: `❌ ${row!.name ?? row!.email} rejected the SoW: ${note}`,
     });
 
-    await insertRow("Notification", {
-      userId: row!.briefOwnerId,
-      type: "collaborator.rejected",
-      title: `${row!.name ?? row!.email} rejected your SoW`,
-      message: note.slice(0, 240),
+    await notify({
+      event: "collaborator.decision",
+      recipients: [{ userId: row!.briefOwnerId }],
+      vars: {
+        actorName: row!.name ?? row!.email,
+        decision: "rejected",
+        briefTitle: row!.briefTitle,
+        note: note.slice(0, 240),
+      },
       link: `/briefs/${row!.briefId}/preview`,
+      briefId: row!.briefId,
     });
 
     revalidatePath(`/briefs/${row!.briefId}/preview`);
@@ -405,12 +416,17 @@ export const leaveReviewNoteAction = defineAction({
       content: `💬 Review note from ${row!.name ?? row!.email}: ${note}`,
     });
 
-    await insertRow("Notification", {
-      userId: row!.briefOwnerId,
-      type: "collaborator.reviewed",
-      title: `${row!.name ?? row!.email} left a review note`,
-      message: note.slice(0, 240),
+    await notify({
+      event: "collaborator.decision",
+      recipients: [{ userId: row!.briefOwnerId }],
+      vars: {
+        actorName: row!.name ?? row!.email,
+        decision: "left a review note on",
+        briefTitle: row!.briefTitle,
+        note: note.slice(0, 240),
+      },
       link: `/briefs/${row!.briefId}/preview`,
+      briefId: row!.briefId,
     });
 
     revalidatePath(`/briefs/${row!.briefId}/preview`);
@@ -471,12 +487,15 @@ export async function claimCollaboratorInviteAction(
   // Notify the brief owner that someone joined. Best-effort; a notification
   // failure must not block the user's redirect to the brief.
   try {
-    await insertRow("Notification", {
-      userId: row.briefOwnerId,
-      type: "collaborator.joined",
-      title: `${row.name ?? row.email} joined your brief`,
-      message: `${row.name ?? row.email} accepted the invite to collaborate on "${row.briefTitle}".`,
+    await notify({
+      event: "collaborator.joined",
+      recipients: [{ userId: row.briefOwnerId }],
+      vars: {
+        actorName: row.name ?? row.email,
+        briefTitle: row.briefTitle,
+      },
       link: `/briefs/${row.briefId}/preview`,
+      briefId: row.briefId,
     });
   } catch {
     /* swallow — already claimed, owner stale, etc. */

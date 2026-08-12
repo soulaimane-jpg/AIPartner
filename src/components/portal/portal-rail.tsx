@@ -126,7 +126,7 @@ export function PortalRail({
       <div className={cn("flex h-14 items-center border-b px-4", light ? "border-slate-200/80" : "border-white/[0.08]")}>
         <Link
           href={portalHome}
-          className={cn("inline-flex items-center gap-2.5 rounded outline-none focus-visible:ring-2", light ? "focus-visible:ring-indigo-500/40" : "focus-visible:ring-blue-300/60")}
+          className={cn("inline-flex items-center gap-2.5 rounded outline-none focus-visible:ring-2", light ? "focus-visible:ring-primary/40" : "focus-visible:ring-blue-300/60")}
           aria-label="AI Partner workspace home"
         >
           <MarkLogo size={22} inverse={!light} />
@@ -139,7 +139,7 @@ export function PortalRail({
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className={cn(
               "ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors duration-120",
-              light ? "text-slate-400 hover:bg-indigo-50 hover:text-indigo-700" : "text-white/45 hover:bg-white/[0.07] hover:text-white",
+              light ? "text-slate-400 hover:bg-primary/5 hover:text-primary" : "text-white/45 hover:bg-white/[0.07] hover:text-white",
               collapsed && "absolute right-2 top-3 ml-0",
             )}
           >
@@ -209,14 +209,14 @@ export function PortalRail({
           title={!mobile && collapsed ? user.name || user.email : undefined}
           className={cn(
             "mt-2 flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors duration-120",
-            light ? "hover:bg-indigo-50/80" : "hover:bg-white/[0.04]",
+            light ? "hover:bg-primary/5" : "hover:bg-white/[0.04]",
           )}
         >
           <Avatar
             name={user.name || user.email}
             src={user.image}
             size="sm"
-            className={light ? "ring-indigo-200/80" : "ring-white/15"}
+            className={light ? "ring-primary/20" : "ring-white/15"}
           />
           {(!collapsed || mobile) && (
             <div className="min-w-0 flex-1">
@@ -239,7 +239,7 @@ export function PortalRail({
         className={cn(
           "fixed inset-y-0 left-0 z-40 hidden flex-col border-r transition-[width] duration-200 ease-out lg:flex",
           light
-            ? "border-slate-200/80 bg-white text-slate-900 shadow-[8px_0_28px_-26px_hsl(239_60%_35%/0.28)]"
+            ? "border-slate-200/80 bg-white text-slate-900 shadow-[8px_0_28px_-26px_hsl(214_70%_34%/0.24)]"
             : "border-white/[0.08] bg-[hsl(var(--cinema-bg))] text-white shadow-[8px_0_28px_-24px_hsl(222_60%_4%/0.8)]",
         )}
         style={{ width: "var(--rail-w, 240px)" }}
@@ -296,7 +296,7 @@ function RailLink({
         className={cn(
           "h-[15px] w-[15px] shrink-0",
           light
-            ? active ? "text-indigo-600" : "text-slate-400 group-hover:text-indigo-600"
+            ? active ? "text-primary" : "text-slate-400 group-hover:text-primary"
             : active ? "text-white" : "text-white/55",
         )}
       />
@@ -315,7 +315,7 @@ function RailLink({
       {!collapsed && typeof badge === "number" && badge > 0 && (
         <span className={cn(
           "ml-auto rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums",
-          light ? "bg-indigo-100 text-indigo-700" : "text-white/55",
+          light ? "bg-primary/10 text-primary" : "text-white/55",
         )}>
           {badge > 99 ? "99+" : badge}
         </span>
@@ -328,12 +328,12 @@ function RailLink({
     "transition-[background-color,color,box-shadow] duration-160",
     light
       ? active
-        ? "bg-indigo-50 text-indigo-700 shadow-[inset_3px_0_0_hsl(245_82%_63%)]"
-        : "hover:bg-indigo-50/70"
+        ? "bg-primary/5 text-primary shadow-[inset_3px_0_0_hsl(var(--primary))]"
+        : "hover:bg-primary/5"
       : active
         ? "bg-blue-500/15 text-white shadow-[inset_3px_0_0_hsl(212_96%_62%)]"
         : "hover:bg-white/[0.06]",
-    light ? "focus-visible:ring-2 focus-visible:ring-indigo-500/40" : "focus-visible:ring-2 focus-visible:ring-blue-300/60",
+    light ? "focus-visible:ring-2 focus-visible:ring-primary/40" : "focus-visible:ring-2 focus-visible:ring-blue-300/60",
     collapsed && "justify-center",
   );
 

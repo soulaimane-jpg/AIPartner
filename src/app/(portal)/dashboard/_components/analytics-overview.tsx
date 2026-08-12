@@ -22,7 +22,7 @@ export function AnalyticsOverview({
           </div>
           <div className="flex items-center gap-4 text-[11.5px] text-muted-foreground">
             <Legend swatch="bg-primary" label="Briefs" />
-            <Legend swatch="bg-violet-400" label="Proposals" />
+            <Legend swatch="bg-[hsl(var(--brand-3))]" label="Proposals" />
           </div>
         </header>
         <div className="px-4 pb-4 pt-3 sm:px-6 sm:pb-5">
@@ -53,7 +53,7 @@ export function AnalyticsOverview({
                 <div
                   className={cn(
                     "h-full rounded-full transition-[width] duration-500",
-                    index < 2 ? "bg-primary" : index < 4 ? "bg-violet-400" : "bg-indigo-300",
+                    index < 2 ? "bg-primary" : index < 4 ? "bg-[hsl(var(--brand-3))]" : "bg-primary/35",
                   )}
                   style={{ width: stage.count ? `${Math.max(stage.percentage, 7)}%` : "0%" }}
                 />
@@ -116,11 +116,11 @@ function ActivityChart({ data }: { data: DashboardActivityPoint[] }) {
           <path d={`${briefsPath} L ${x(data.length - 1)} ${top + innerHeight} L ${x(0)} ${top + innerHeight} Z`} fill="url(#brief-area)" />
         )}
         <path d={briefsPath} fill="none" stroke="hsl(var(--primary))" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={proposalsPath} fill="none" stroke="hsl(265 72% 66%)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={proposalsPath} fill="none" stroke="hsl(var(--brand-3))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         {data.map((point, index) => (
           <g key={point.key}>
             <circle cx={x(index)} cy={y(point.briefs)} r="3.5" fill="white" stroke="hsl(var(--primary))" strokeWidth="2" />
-            <circle cx={x(index)} cy={y(point.proposals)} r="3" fill="white" stroke="hsl(265 72% 66%)" strokeWidth="2" />
+            <circle cx={x(index)} cy={y(point.proposals)} r="3" fill="white" stroke="hsl(var(--brand-3))" strokeWidth="2" />
             <text x={x(index)} y={height - 8} textAnchor="middle" className="fill-muted-foreground text-[11px]">{point.label}</text>
           </g>
         ))}

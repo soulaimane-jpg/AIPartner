@@ -88,7 +88,7 @@ export function BriefFeedbackPanel({
             {/* Header */}
             <div className="px-6 py-4 border-b border-border flex items-start justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-primary to-violet-500 text-white shrink-0">
+                <div className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-primary to-[hsl(var(--brand-3))] text-white shrink-0">
                   <Sparkles className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">

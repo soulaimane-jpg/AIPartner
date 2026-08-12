@@ -154,8 +154,11 @@ export const aiRankPartnersAction = defineAction({
     );
     if (!brief) fail({ code: "NOT_FOUND", resource: "Brief" });
 
+    // Vetting gate: only admin-approved partners are sourceable. A
+    // self-registered company stays invisible until it is reviewed.
     const partnerCompanies = await query<CompanyRow>(
-      `SELECT * FROM "Company" WHERE "kind" = 'PARTNER'`,
+      `SELECT * FROM "Company"
+       WHERE "kind" = 'PARTNER' AND "verificationStatus" = 'APPROVED'`,
     );
     const profiles = await query<PartnerProfileRow>(
       `SELECT * FROM "PartnerProfile" WHERE "companyId" = ANY($1)`,

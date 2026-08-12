@@ -11,6 +11,7 @@ import {
   SIGNUP_INTENT_MAX_AGE,
 } from "@/lib/signup-intent";
 import { query, queryOne, insertRow, updateRows, tx } from "@/lib/db";
+import { notify } from "@/lib/notify";
 import { sendEmail } from "@/lib/email/provider";
 import { renderPasswordResetEmail } from "@/lib/email-templates";
 import {
@@ -19,6 +20,14 @@ import {
   hashResetToken,
   resetUrl,
 } from "@/lib/auth/password-reset";
+import {
+  VERIFICATION_TOKEN_TTL_HOURS,
+  createVerificationToken,
+  verificationUrl,
+} from "@/lib/auth/email-verification";
+import { renderEmailVerificationEmail } from "@/lib/email-templates";
+import { assessDomainEvidence } from "@/lib/partner-verification";
+import { findWorkspaceByEmailDomain } from "@/lib/workspace-discovery";
 import type { LeadRow, UserRow } from "@/lib/db/rows";
 import type { AuthState } from "@/lib/types/auth";
 
@@ -36,6 +45,36 @@ function safeInternalPath(value: string | undefined, fallback: string): string {
     return url.origin === "http://localhost" ? `${url.pathname}${url.search}${url.hash}` : fallback;
   } catch {
     return fallback;
+  }
+}
+
+/**
+ * Send the confirm-your-email link. Best-effort: a mail failure must
+ * not block signup — the user can resend from their profile.
+ */
+async function sendVerificationEmail(opts: {
+  userId: string;
+  email: string;
+  name: string | null;
+}): Promise<void> {
+  try {
+    const token = await createVerificationToken({
+      userId: opts.userId,
+      email: opts.email,
+    });
+    const { subject, body } = renderEmailVerificationEmail({
+      recipientName: opts.name ?? opts.email.split("@")[0],
+      verificationUrl: verificationUrl(token),
+      expiresIn: `${VERIFICATION_TOKEN_TTL_HOURS} hours`,
+    });
+    await sendEmail({
+      toAddress: opts.email,
+      subject,
+      body,
+      kind: "email-verification",
+    });
+  } catch (err) {
+    console.warn("[auth] verification email failed", err);
   }
 }
 
@@ -292,7 +331,7 @@ export async function signUpCustomerAction(
   }
 
   const hash = await bcrypt.hash(password, 10);
-  const user = await tx(async (client) => {
+  const user = await tx<{ id: string; companyId: string }>(async (client) => {
     const company = await insertRow<{ id: string }>(
       "Company",
       { name: companyName!.trim(), kind: "CUSTOMER" },
@@ -324,8 +363,46 @@ export async function signUpCustomerAction(
       },
       { client },
     );
-    return createdUser;
+    return { id: createdUser.id, companyId: company.id };
   });
+
+  await sendVerificationEmail({ userId: user.id, email: normalized, name });
+
+  // Workspace discovery: if colleagues from this email domain already
+  // have a workspace, raise a join request rather than leaving the two
+  // of them in separate invisible tenants. A REQUEST, not an auto-join
+  // — brief access follows `companyId`, so silently attaching them
+  // would expose every brief that company has written.
+  try {
+    const candidate = await findWorkspaceByEmailDomain(normalized);
+    if (candidate && candidate.companyId !== user.companyId) {
+      await insertRow("WorkspaceJoinRequest", {
+        companyId: candidate.companyId,
+        requesterId: user.id,
+        requesterCompanyId: user.companyId,
+        emailDomain: candidate.domain,
+        status: "PENDING",
+      });
+      const owners = await query<{ id: string }>(
+        `SELECT "userId" AS "id" FROM "WorkspaceMembership"
+         WHERE "companyId" = $1 AND "status" = 'ACTIVE' AND "role" IN ('OWNER','ADMIN')`,
+        [candidate.companyId],
+      );
+      await notify({
+        event: "workspace.join_requested",
+        recipients: owners.map((o) => ({ userId: o.id })),
+        vars: {
+          requesterName: name,
+          requesterEmail: normalized,
+          companyName: candidate.companyName,
+        },
+        link: "/settings/members",
+      });
+    }
+  } catch (err) {
+    // Discovery is a convenience — never block a signup on it.
+    console.warn("[auth] workspace discovery failed", err);
+  }
 
   // Link the Lead to the newly-created customer + notify the Googler.
   if (invite) {
@@ -338,12 +415,12 @@ export async function signUpCustomerAction(
         status: "CLAIMED",
       },
     );
-    await insertRow("Notification", {
-      userId: invite.googlerId,
-      type: "LEAD_CLAIMED",
-      title: "Your invite was claimed",
-      message: `${name} (${companyName}) just created their AI Partner account.`,
+    await notify({
+      event: "lead.claimed",
+      recipients: [{ userId: invite.googlerId }],
+      vars: { customerName: name, companyName: companyName ?? "" },
       link: `/google/leads/${invite.id}`,
+      idemKey: `claimed:${invite.id}`,
     });
   }
 
@@ -468,14 +545,23 @@ export async function signUpPartnerAction(
     if (exists) return { error: "An account with this email already exists" };
 
   const hash = await bcrypt.hash(password, 10);
-  await tx(async (client) => {
+  // Partners start unverified: they cannot be sourced or invited until
+  // an admin approves them. The signup domain is recorded as evidence
+  // for that review, never as an automatic approval.
+  const evidence = assessDomainEvidence({ email: normalized });
+  const partnerUser = await tx(async (client) => {
     const company = await insertRow<{ id: string }>(
       "Company",
-      { name: companyName, kind: "PARTNER" },
+      {
+        name: companyName,
+        kind: "PARTNER",
+        verificationStatus: "PENDING",
+        signupEmailDomain: evidence.domain,
+      },
       { client },
     );
     await insertRow("PartnerProfile", { companyId: company.id }, { client });
-    await insertRow(
+    return insertRow<{ id: string }>(
       "User",
       {
         email: normalized,
@@ -486,6 +572,11 @@ export async function signUpPartnerAction(
       },
       { client },
     );
+  });
+  await sendVerificationEmail({
+    userId: partnerUser.id,
+    email: normalized,
+    name,
   });
   await signIn("credentials", { email: normalized, password, redirect: false });
   redirect("/partner");

@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   removeAccountAvatarAction,
+  resendVerificationEmailAction,
   updateAccountProfileAction,
   uploadAccountAvatarAction,
 } from "@/lib/actions/account-profile";
@@ -49,6 +50,7 @@ export function AccountProfileForm({ initial }: { initial: AccountProfileData })
   const [imageUrl, setImageUrl] = useState(initial.imageUrl);
   const [saving, startSaving] = useTransition();
   const [uploading, startUploading] = useTransition();
+  const [resending, setResending] = useState(false);
 
   function save(e: React.FormEvent) {
     e.preventDefault();
@@ -210,6 +212,28 @@ export function AccountProfileForm({ initial }: { initial: AccountProfileData })
               <SecurityRow icon={<BadgeCheck />} label="Google account" value="Connected" tone="success" />
             )}
             <div className="space-y-2 border-t border-border pt-4">
+              {!initial.emailVerified && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-between"
+                  disabled={resending}
+                  onClick={() => {
+                    setResending(true);
+                    resendVerificationEmailAction()
+                      .then((r) =>
+                        r.ok
+                          ? toast.success("Confirmation email sent — check your inbox.")
+                          : toast.error(r.error),
+                      )
+                      .finally(() => setResending(false));
+                  }}
+                >
+                  {resending ? "Sending…" : "Resend confirmation email"}
+                  <Mail className="h-3.5 w-3.5" />
+                </Button>
+              )}
               {initial.passwordEnabled && (
                 <Button asChild variant="outline" size="sm" className="w-full justify-between">
                   <Link href={`/auth/reset?email=${encodeURIComponent(initial.email)}`}>

@@ -17,7 +17,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { defineAction, fail } from "@/lib/actions/define";
-import { query, queryOne, insertRow, exec } from "@/lib/db";
+import { query, queryOne, insertRow } from "@/lib/db";
 import type { MatchRow } from "@/lib/db/rows";
 import { transitionInvite } from "@/lib/state-machine/invite";
 import { transitionLead, getLeadState } from "@/lib/state-machine/lead";
@@ -56,6 +56,22 @@ export const adminSelectPartnersAction = defineAction({
       fail({
         code: "CONFLICT",
         reason: `Lead must be LEAD_APPROVED or STALLED (is ${state})`,
+      });
+    }
+
+    // Vetting gate: an unapproved partner must never reach a customer,
+    // regardless of how the admin arrived at this list.
+    const approved = await query<{ id: string }>(
+      `SELECT "id" FROM "Company"
+       WHERE "id" = ANY($1) AND "kind" = 'PARTNER' AND "verificationStatus" = 'APPROVED'`,
+      [partnerIds],
+    );
+    if (approved.length !== partnerIds.length) {
+      const approvedIds = new Set(approved.map((c) => c.id));
+      const blocked = partnerIds.filter((id) => !approvedIds.has(id));
+      fail({
+        code: "CONFLICT",
+        reason: `${blocked.length} selected partner(s) are not verified. Approve them in Partner verification before inviting.`,
       });
     }
 
@@ -224,18 +240,16 @@ export const adminSendInvitesAction = defineAction({
       });
     }
 
+    // The lead is at SENT_TO_PARTNERS until a proposal actually
+    // arrives. Forcing stage='PROPOSALS' here (as this action used to)
+    // contradicted the transition on the line above and left the
+    // customer pipeline widget and the admin state gate disagreeing.
     await transitionLead({
       briefId,
       to: "SENT_TO_PARTNERS",
       actor: userActor(ctx.user!.id, ctx.user!.companyId),
       meta: { invited: matches.length },
     });
-
-    await exec(
-      `UPDATE "ProjectBrief" SET "stage" = 'PROPOSALS', "updatedAt" = NOW()
-       WHERE "id" = $1 AND "stage" IN ('REVIEW', 'SOURCING')`,
-      [briefId],
-    );
 
     revalidatePath(`/admin/briefs/${briefId}`);
     return { invited: matches.length };

@@ -458,7 +458,7 @@ function AssistantMark({ size }: { size: "sm" | "md" | "lg" }) {
   return (
     <span
       className={cn(
-        "relative grid shrink-0 place-items-center overflow-hidden bg-gradient-to-br from-indigo-700 via-primary to-violet-500 text-white shadow-elev-1 ring-1 ring-primary/30",
+        "relative grid shrink-0 place-items-center overflow-hidden bg-gradient-to-br from-[hsl(var(--brand-2))] via-primary to-[hsl(var(--brand-3))] text-white shadow-elev-1 ring-1 ring-primary/30",
         dimensions,
       )}
       aria-hidden

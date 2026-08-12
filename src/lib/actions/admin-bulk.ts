@@ -15,8 +15,15 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { defineAction } from "@/lib/actions/define";
-import { query, exec, insertRow } from "@/lib/db";
-import { BRIEF_STAGES } from "@/lib/enums";
+import { query, exec } from "@/lib/db";
+import { notify } from "@/lib/notify";
+import { LEAD_STATES } from "@/lib/enums";
+import {
+  advanceLeadIfAllowed,
+  transitionLead,
+} from "@/lib/state-machine/lead";
+import { userActor } from "@/lib/state-machine/transition";
+import { satisfyTimer } from "@/lib/timers";
 
 const MAX_BULK = 50;
 const BriefIds = z.array(z.string().min(1)).min(1).max(MAX_BULK);
@@ -47,12 +54,19 @@ export const bulkTriageBriefsAction = defineAction({
       [briefIds, now, ctx.user!.id, notes ?? null],
     );
 
-    // Stage-shift only the ones still in INTAKE.
-    await exec(
-      `UPDATE "ProjectBrief" SET "stage" = 'SOURCING', "updatedAt" = NOW()
-       WHERE "id" = ANY($1) AND "stage" = 'INTAKE'`,
-      [briefIds],
-    );
+    // Advance each lead through the state machine so the hop is
+    // audited per brief. `advanceLeadIfAllowed` no-ops for anything
+    // already past triage, matching the old conditional UPDATE.
+    const actor = userActor(ctx.user!.id, ctx.user!.companyId);
+    for (const briefId of briefIds) {
+      await advanceLeadIfAllowed({
+        briefId,
+        to: "IN_TRIAGE",
+        actor,
+        meta: { via: "admin.bulk.triage" },
+      });
+      await satisfyTimer("brief", briefId, "triage");
+    }
 
     // Notify owners.
     const briefs = await query<{ id: string; ownerId: string; title: string }>(
@@ -60,13 +74,13 @@ export const bulkTriageBriefsAction = defineAction({
       [briefIds],
     );
     for (const b of briefs) {
-      await insertRow("Notification", {
-        userId: b.ownerId,
-        type: "brief.triaged",
-        title: "Your brief is now in active sourcing",
-        message:
-          "Our team confirmed your project as a real lead. We're identifying the top 5 partner matches.",
+      await notify({
+        event: "brief.triaged",
+        recipients: [{ userId: b.ownerId }],
+        vars: { briefTitle: b.title },
         link: `/briefs/${b.id}/preview`,
+        briefId: b.id,
+        idemKey: `triaged:${b.id}`,
       });
     }
 
@@ -80,21 +94,37 @@ export const bulkTriageBriefsAction = defineAction({
 
 const BulkStageInput = z.object({
   briefIds: BriefIds,
-  stage: z.enum(BRIEF_STAGES),
+  leadState: z.enum(LEAD_STATES),
 });
 
+/**
+ * Bulk pipeline move. Each brief goes through the state machine, so a
+ * brief that can't legally make the hop is skipped rather than being
+ * force-written into a state its `leadState` disagrees with. The
+ * returned count is the number actually moved.
+ */
 export const bulkChangeStageAction = defineAction({
   name: "admin.bulk.stage",
   input: BulkStageInput,
   output: z.object({ count: z.number().int().nonnegative() }),
   permission: "admin.bulk-action",
   rateLimit: { scope: "admin.bulk.stage", limit: 20, windowSec: 600 },
-  handler: async ({ briefIds, stage }) => {
-    const count = await exec(
-      `UPDATE "ProjectBrief" SET "stage" = $2, "updatedAt" = NOW()
-       WHERE "id" = ANY($1)`,
-      [briefIds, stage],
-    );
+  handler: async ({ briefIds, leadState }, ctx) => {
+    const actor = userActor(ctx.user!.id, ctx.user!.companyId);
+    let count = 0;
+    for (const briefId of briefIds) {
+      try {
+        await transitionLead({
+          briefId,
+          to: leadState,
+          actor,
+          reason: "Admin bulk pipeline change",
+        });
+        count++;
+      } catch {
+        // Illegal hop for this brief — skip it, keep the batch going.
+      }
+    }
     revalidatePath("/admin/briefs");
     return { count };
   },

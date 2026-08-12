@@ -9,11 +9,20 @@ import { buildOpeningMessage } from "@/lib/brief-prompts";
 import { defineAction, fail } from "@/lib/actions/define";
 import { hasOutstandingApprovals } from "@/lib/workspace-access";
 import {
+  advanceLeadIfAllowed,
+  transitionLead,
+  type LeadState,
+} from "@/lib/state-machine/lead";
+import { userActor } from "@/lib/state-machine/transition";
+import { startTimer } from "@/lib/timers";
+import { getSetting } from "@/lib/settings";
+import { notify, notifyAdmins } from "@/lib/notify";
+import {
   CreateBriefInput,
   UpdateBriefInput,
   SubmitBriefInput,
   MatchActionInput,
-  AdvanceStageInput,
+  AdvanceLeadStateInput,
   DeleteBriefInput,
   BRIEF_PATCH_ALLOWED_FIELDS,
   BRIEF_JSON_FIELDS,
@@ -60,6 +69,7 @@ export const createBriefAction = defineAction({
         targetGoLive: parsed.targetStartDate || null,
         budgetRange: parsed.estimatedBudget || null,
         stage: "INTAKE",
+        leadState: "DRAFT",
         status: "DRAFT",
       }, { client });
       await insertRow("BriefAccess", {
@@ -395,7 +405,6 @@ export const submitBriefAction = defineAction({
 
     const data: Record<string, unknown> = {
       status: "ACTIVE",
-      stage: "SOURCING",
       submittedAt: new Date(),
     };
     if (meeting) {
@@ -410,28 +419,41 @@ export const submitBriefAction = defineAction({
 
     await updateRows("ProjectBrief", { id: briefId }, data);
 
-    await insertRow("Notification", {
-      userId: ctx.user!.id,
-      type: "brief.submitted",
-      title: "Brief sent to AI Partner",
-      message: meeting
-        ? "We'll confirm one of your proposed meeting times shortly."
-        : "Our team is now identifying the best-fit Google Cloud partners.",
-      link: `/briefs/${briefId}/preview`,
+    // The submit hop belongs to the state machine: it is what puts the
+    // lead into SUBMITTED, gives triage a real from-state, and records
+    // the first two audit hops of the lead's life.
+    await advanceLeadIfAllowed({
+      briefId,
+      to: "SUBMITTED",
+      actor: userActor(ctx.user!.id, ctx.user!.companyId),
+      meta: { source: "customer_submit" },
     });
 
-    const admins = await query<{ id: string }>(
-      `SELECT "id" FROM "User" WHERE "role" = 'ADMIN'`,
-    );
-    for (const a of admins) {
-      await insertRow("Notification", {
-        userId: a.id,
-        type: "brief.awaiting_triage",
-        title: "New brief awaiting triage",
-        message: `"${brief!.title}" was submitted by the customer. Schedule the alignment meeting and start sourcing.`,
-        link: `/admin/briefs/${briefId}/triage`,
-      });
-    }
+    // Start the admin triage SLA — the customer is blocked until we act.
+    const triageHours = await getSetting("triage_hours");
+    await startTimer({
+      entityType: "brief",
+      entityId: briefId,
+      timerType: "triage",
+      deadlineAt: new Date(Date.now() + triageHours * 3_600_000),
+      meta: { briefId },
+    });
+
+    await notify({
+      event: "brief.submitted",
+      recipients: [{ userId: ctx.user!.id }],
+      vars: { briefTitle: brief!.title },
+      link: `/briefs/${briefId}/preview`,
+      briefId,
+      idemKey: `submitted:${briefId}`,
+    });
+    await notifyAdmins({
+      event: "brief.awaiting_triage_admin",
+      vars: { briefTitle: brief!.title },
+      link: `/admin/briefs/${briefId}/triage`,
+      briefId,
+      idemKey: `awaiting-triage:${briefId}`,
+    });
 
     revalidatePath("/dashboard");
     revalidatePath(`/briefs/${briefId}/preview`);
@@ -450,7 +472,7 @@ export const approveMatchAction = defineAction({
   input: MatchActionInput,
   permission: "match.shortlist",
   rateLimit: { scope: "match.approve", limit: 30, windowSec: 60 },
-  handler: async ({ matchId }) => {
+  handler: async ({ matchId }, ctx) => {
     const match = await queryOne<{
       id: string;
       briefId: string;
@@ -478,25 +500,26 @@ export const approveMatchAction = defineAction({
       { onConflict: '("matchId") DO NOTHING' },
     );
 
-    await exec(
-      `UPDATE "ProjectBrief" SET "stage" = 'PROPOSALS', "updatedAt" = NOW()
-       WHERE "id" = $1 AND "stage" = 'REVIEW'`,
-      [match!.briefId],
-    );
+    await advanceLeadIfAllowed({
+      briefId: match!.briefId,
+      to: "PROPOSALS_IN_REVIEW",
+      actor: userActor(ctx.user!.id, ctx.user!.companyId),
+      meta: { via: "match.approve", matchId },
+    });
 
-    const partnerUser = await queryOne<{ id: string }>(
-      `SELECT "id" FROM "User"
-       WHERE "companyId" = $1 AND "role" = 'PARTNER'
-       LIMIT 1`,
+    const partnerUsers = await query<{ id: string }>(
+      `SELECT "id" FROM "User" WHERE "companyId" = $1 AND "role" = 'PARTNER'`,
       [match!.partnerId],
     );
-    if (partnerUser) {
-      await insertRow("Notification", {
-        userId: partnerUser.id,
-        type: "proposal.invited",
-        title: "New project brief shared with you",
-        message: `The customer approved the match for "${match!.briefTitle}". You can now review the SoW and draft a proposal.`,
+    if (partnerUsers.length > 0) {
+      await notify({
+        event: "proposal.invited",
+        recipients: partnerUsers.map((u) => ({ userId: u.id })),
+        vars: { briefTitle: match!.briefTitle },
         link: `/partner/briefs/${match!.briefId}`,
+        briefId: match!.briefId,
+        matchId,
+        idemKey: `invited:${matchId}`,
       });
     }
 
@@ -527,13 +550,33 @@ export const declineMatchAction = defineAction({
 
 // ─── Admin stage advance ────────────────────────────────────────
 
+/**
+ * Admin pipeline advance.
+ *
+ * Takes a `LeadState` and goes through the state machine: an illegal
+ * hop is rejected rather than silently desyncing `stage` from
+ * `leadState`, and every move is audited with actor + from + to.
+ */
 export const advanceStageAction = defineAction({
   name: "brief.advance-stage",
-  input: AdvanceStageInput,
+  input: AdvanceLeadStateInput,
   permission: "admin.triage",
   rateLimit: { scope: "brief.advance-stage", limit: 60, windowSec: 60 },
-  handler: async ({ briefId, to }) => {
-    await updateRows("ProjectBrief", { id: briefId }, { stage: to });
+  handler: async ({ briefId, to }, ctx) => {
+    try {
+      await transitionLead({
+        briefId,
+        to: to as LeadState,
+        actor: userActor(ctx.user!.id, ctx.user!.companyId),
+        reason: "Admin pipeline override",
+      });
+    } catch (err) {
+      fail({
+        code: "CONFLICT",
+        reason:
+          err instanceof Error ? err.message : "Illegal pipeline transition",
+      });
+    }
     revalidatePath("/admin");
     revalidatePath("/dashboard");
     return { ok: true as const };

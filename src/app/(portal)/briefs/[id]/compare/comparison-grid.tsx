@@ -24,6 +24,7 @@ import {
   selectPartnersAction,
   approveRevealAction,
 } from "@/lib/actions/selection";
+import { AskPartnerQuestion } from "@/components/brief/ask-partner-question";
 import { mapErrorToToast } from "@/lib/schemas/errors";
 import { cn } from "@/lib/utils";
 
@@ -133,6 +134,17 @@ export function ComparisonGrid({
                       />
                       Shortlist for meetings
                     </label>
+                  )}
+                  {/* Ask before you commit — anonymity is preserved on
+                      both sides, so this doesn't force an early reveal. */}
+                  {selecting && (
+                    <div className="mt-1.5 font-normal">
+                      <AskPartnerQuestion
+                        briefId={briefId}
+                        matchId={col.matchId}
+                        partnerLabel={col.revealedName ?? col.placeholderLabel}
+                      />
+                    </div>
                   )}
                 </th>
               ))}

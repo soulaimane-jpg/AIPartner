@@ -87,6 +87,30 @@ export interface PartnerCapabilities {
   profileStrength: number;
   /** Drives the staleness penalty. */
   lastVerifiedAt: Date | null;
+  /**
+   * Delivered outcomes on past briefs. Null (or thin) means "no
+   * signal", which is neutral — never a penalty. See
+   * `scorePerformance`.
+   */
+  performance?: PartnerPerformance | null;
+}
+
+/**
+ * What the platform has actually observed about a partner, as opposed
+ * to what the partner claims. Populated by
+ * `@/lib/partner-performance` from win/loss, NPS and deal reports.
+ */
+export interface PartnerPerformance {
+  /** Won / submitted, over the lookback window. Null when none submitted. */
+  winRate: number | null;
+  /** Mean NPS 0–10 for engagements involving this partner. */
+  csat: number | null;
+  /** Proposals submitted — the denominator behind `winRate`. */
+  proposalsSubmitted: number;
+  /** NPS responses behind `csat`. */
+  csatResponses: number;
+  /** Deals confirmed delivered. */
+  dealsWon: number;
 }
 
 export type GateReason =
@@ -116,6 +140,8 @@ export interface MatchResultV2 {
     products: MatchComponent;
     capacity: { score: number; note: string };
   };
+  /** Bounded track-record adjustment applied to the final score. */
+  performance: { multiplier: number; note: string | null };
 }
 
 const DEAL_SIZE_ORDER = DEAL_SIZE_OPTIONS.map((o) => o.value);
@@ -264,6 +290,78 @@ function evaluateGates(
   return gates;
 }
 
+/**
+ * Track-record adjustment — the platform's own observations feeding
+ * back into ranking.
+ *
+ * Deliberately a bounded multiplier rather than a weighted component:
+ *
+ *   - **Bounded** (±10%). Past performance should break ties between
+ *     comparable partners, never override capability fit. A partner who
+ *     matches the actual requirements must not lose to a weaker fit
+ *     with a prettier history.
+ *   - **Smoothed toward neutral.** Rates are pulled toward 50% in
+ *     proportion to how little data supports them (a Bayesian prior
+ *     with weight `PRIOR_STRENGTH`), so one lucky win doesn't mint a
+ *     top-ranked partner and one loss doesn't bury a new one.
+ *   - **Never a cold-start penalty.** No data → multiplier exactly 1.0.
+ *     Otherwise the feedback loop becomes a rich-get-richer ratchet
+ *     that new partners can never escape, which is both unfair and
+ *     bad for marketplace liquidity.
+ */
+const PERFORMANCE_SWING = 0.1;
+const PRIOR_STRENGTH = 5;
+
+export function scorePerformance(
+  performance: PartnerPerformance | null | undefined,
+): { multiplier: number; note: string | null } {
+  if (!performance) return { multiplier: 1, note: null };
+
+  const signals: number[] = [];
+
+  if (performance.proposalsSubmitted > 0 && performance.winRate !== null) {
+    // Smooth toward a 0.5 prior; weight grows with sample size.
+    const n = performance.proposalsSubmitted;
+    const smoothed =
+      (performance.winRate * n + 0.5 * PRIOR_STRENGTH) / (n + PRIOR_STRENGTH);
+    signals.push(smoothed);
+  }
+
+  if (performance.csatResponses > 0 && performance.csat !== null) {
+    const n = performance.csatResponses;
+    const normalised = performance.csat / 10;
+    const smoothed =
+      (normalised * n + 0.5 * PRIOR_STRENGTH) / (n + PRIOR_STRENGTH);
+    signals.push(smoothed);
+  }
+
+  if (signals.length === 0) return { multiplier: 1, note: null };
+
+  const mean = signals.reduce((a, b) => a + b, 0) / signals.length;
+  // mean 0.5 → 1.0; mean 1 → 1 + SWING; mean 0 → 1 - SWING.
+  const multiplier = 1 + (mean - 0.5) * 2 * PERFORMANCE_SWING;
+
+  const parts: string[] = [];
+  if (performance.dealsWon > 0) {
+    parts.push(
+      `${performance.dealsWon} delivered engagement${performance.dealsWon === 1 ? "" : "s"}`,
+    );
+  }
+  if (performance.csat !== null && performance.csatResponses >= 3) {
+    parts.push(`${performance.csat.toFixed(1)}/10 customer satisfaction`);
+  }
+
+  return {
+    multiplier,
+    note:
+      parts.length > 0
+        ? `Track record: ${parts.join(", ")}`
+        : multiplier >= 1
+          ? "Track record slightly above average"
+          : "Track record slightly below average",
+  };
+}
+
 /** Days since verification, or null when never verified. */
 function daysSince(date: Date | null, now: Date): number | null {
   if (!date) return null;
@@ -324,6 +422,10 @@ export function computeMatchV2(
   else if (age > 365) score *= 0.85;
   else if (age > 183) score *= 0.93;
 
+  // Feedback loop: what we've actually observed this partner deliver.
+  const performance = scorePerformance(partner.performance);
+  score *= performance.multiplier;
+
   const gates = evaluateGates(brief, partner);
   const finalScore = Math.max(0, Math.min(100, Math.round(score)));
 
@@ -332,8 +434,12 @@ export function computeMatchV2(
     label: labelFor(finalScore),
     eligible: gates.length === 0,
     gates,
-    reasons: buildReasons(components, gates, age),
+    reasons: buildReasons(components, gates, age, performance.note),
     components,
+    performance: {
+      multiplier: performance.multiplier,
+      note: performance.note,
+    },
   };
 }
 
@@ -341,6 +447,7 @@ function buildReasons(
   components: MatchResultV2["components"],
   gates: GateReason[],
   ageDays: number | null,
+  performanceNote?: string | null,
 ): string[] {
   const reasons: string[] = [];
 
@@ -375,6 +482,8 @@ function buildReasons(
           : "Missing a required compliance capability",
     );
   }
+
+  if (performanceNote) reasons.push(performanceNote);
 
   if (ageDays === null) reasons.push("Profile not yet verified");
   else if (ageDays > 183) reasons.push("Profile not confirmed recently");

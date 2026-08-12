@@ -160,38 +160,38 @@
   }
 
   .portal-root[data-portal-appearance="customer"] {
-    --bg:           246 58% 98%;
+    --bg:           214 50% 98%;
     --surface-0:    var(--bg);
     --surface-1:    0 0% 100%;
-    --surface-2:    245 42% 96%;
-    --surface-3:    243 34% 93%;
-    --surface-sunk: 246 48% 97%;
+    --surface-2:    214 42% 96%;
+    --surface-3:    214 30% 93%;
+    --surface-sunk: 214 46% 97%;
     --background:   var(--bg);
     --card:         var(--surface-1);
     --popover:      var(--surface-1);
-    --foreground:   231 31% 14%;
-    --brand-1:      245 82% 63%;
-    --brand-2:      250 72% 56%;
-    --brand-3:      231 88% 66%;
-    --magenta-1:    245 82% 63%;
-    --magenta-2:    250 72% 56%;
-    --magenta-glow: 245 88% 82%;
+    --foreground:   221 39% 11%;
+    --brand-1:      214 82% 51%;
+    --brand-2:      215 77% 42%;
+    --brand-3:      217 89% 61%;
+    --magenta-1:    214 82% 51%;
+    --magenta-2:    215 77% 42%;
+    --magenta-glow: 214 88% 82%;
     --primary:      var(--brand-1);
-    --primary-soft: 245 100% 97%;
-    --secondary:        244 42% 95%;
-    --muted:            244 38% 96%;
-    --muted-foreground: 229 13% 44%;
-    --subtle:           229 12% 60%;
-    --line:             241 30% 90%;
-    --line-strong:      240 23% 79%;
-    --hairline:         242 30% 86%;
+    --primary-soft: 214 100% 97%;
+    --secondary:        214 35% 95%;
+    --muted:            214 34% 96%;
+    --muted-foreground: 218 16% 40%;
+    --subtle:           218 13% 58%;
+    --line:             214 28% 89%;
+    --line-strong:      214 22% 77%;
+    --hairline:         214 30% 84%;
     --border:           var(--line);
     --border-strong:    var(--line-strong);
     --input:            var(--line);
     --ring:             var(--brand-1);
-    --elev-1: 0 1px 2px hsl(240 35% 30% / 0.035), 0 6px 18px -14px hsl(245 55% 35% / 0.14);
-    --elev-2: 0 2px 4px hsl(240 35% 30% / 0.04), 0 12px 28px -16px hsl(245 55% 35% / 0.2);
-    --elev-3: 0 6px 14px -8px hsl(240 35% 24% / 0.12), 0 22px 44px -20px hsl(245 55% 35% / 0.24);
+    --elev-1: 0 1px 2px hsl(220 35% 24% / 0.035), 0 6px 18px -14px hsl(214 72% 38% / 0.14);
+    --elev-2: 0 2px 4px hsl(220 35% 24% / 0.04), 0 12px 28px -16px hsl(214 72% 38% / 0.18);
+    --elev-3: 0 6px 14px -8px hsl(220 35% 20% / 0.11), 0 22px 44px -20px hsl(214 72% 34% / 0.22);
   }
 
   /* ─── CINEMA surface ──────────────────────────────────────────

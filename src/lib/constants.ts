@@ -164,6 +164,30 @@ export const STAGE_LABELS: Record<string, string> = {
   CLOSED: "Closed",
 };
 
+/**
+ * Human labels for the canonical `leadState` pipeline. `STAGE_LABELS`
+ * above describes the derived legacy `stage` column; prefer these
+ * wherever the precise pipeline position matters.
+ */
+export const LEAD_STATE_LABELS: Record<string, string> = {
+  DRAFT: "Draft",
+  SUBMITTED: "Submitted",
+  IN_TRIAGE: "In triage",
+  CLARIFICATION_NEEDED: "Clarification needed",
+  LEAD_APPROVED: "Approved",
+  PARTNERS_SELECTED: "Partners selected",
+  SENT_TO_PARTNERS: "Sent to partners",
+  PROPOSALS_IN_REVIEW: "Proposals in review",
+  COMPARISON_RELEASED: "Comparison released",
+  COMPANY_SELECTED: "Partner selected",
+  REVEAL_APPROVED: "Identities revealed",
+  MEETINGS_SCHEDULED: "Meetings scheduled",
+  COMPLETED: "Completed",
+  DROPPED_OFF: "Dropped off",
+  CANCELLED: "Cancelled",
+  STALLED: "Stalled",
+};
+
 export const STAGE_ORDER = [
   "INTAKE",
   "SOURCING",

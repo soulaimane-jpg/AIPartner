@@ -80,6 +80,7 @@ describe("lead lifecycle (§5.1)", () => {
 describe("invite lifecycle (§5.2)", () => {
   const allowed: Array<[string, string]> = [
     ["INVITED", "PARTNER_ACCEPTED"],
+    ["PROPOSAL_SUBMITTED", "PARTNER_ACCEPTED"], // partner withdrew pre-QC
     ["INVITED", "PARTNER_DECLINED"],
     ["INVITED", "EXPIRED"],
     ["INVITED", "WITHDRAWN"],
@@ -105,6 +106,7 @@ describe("invite lifecycle (§5.2)", () => {
     ["INVITED", "QC_PASSED"],
     ["PARTNER_ACCEPTED", "SELECTED"], // must submit + QC first
     ["PROPOSAL_SUBMITTED", "SELECTED"], // QC gate first
+    ["QC_PASSED", "PARTNER_ACCEPTED"], // withdrawal window has closed
     ["SELECTED", "NOT_SELECTED"], // terminal
     ["NOT_SELECTED", "SELECTED"], // terminal — firewalled forever
     ["WITHDRAWN", "INVITED"], // terminal
@@ -129,6 +131,7 @@ describe("proposal lifecycle (§5.3)", () => {
     ["IN_QC", "QC_PASSED"],
     ["QC_PASSED", "SELECTED"],
     ["QC_PASSED", "DECLINED"],
+    ["SUBMITTED", "DRAFT"], // partner withdraws before QC
   ];
 
   it.each(allowed)("allows %s → %s", (from, to) => {
@@ -140,6 +143,8 @@ describe("proposal lifecycle (§5.3)", () => {
     ["SUBMITTED", "SELECTED"], // QC first
     ["CLARIFICATION_NEEDED", "QC_PASSED"], // must return to QC
     ["SELECTED", "DRAFT"],
+    ["IN_QC", "DRAFT"], // too late to withdraw once QC has it
+    ["QC_PASSED", "DRAFT"],
   ];
 
   it.each(denied)("denies %s → %s", (from, to) => {

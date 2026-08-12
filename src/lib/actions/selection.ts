@@ -19,8 +19,9 @@ import { query, queryOne, exec, insertRow } from "@/lib/db";
 import { transitionInvite } from "@/lib/state-machine/invite";
 import { transitionLead, getLeadState } from "@/lib/state-machine/lead";
 import { userActor } from "@/lib/state-machine/transition";
-import { satisfyTimer } from "@/lib/timers";
-import { notify } from "@/lib/notify";
+import { satisfyTimer, startTimer } from "@/lib/timers";
+import { getSetting } from "@/lib/settings";
+import { notify, notifyAdmins } from "@/lib/notify";
 
 // ─── Team voting ──────────────────────────────────────────────
 
@@ -131,18 +132,16 @@ export const selectPartnersAction = defineAction({
        WHERE m."id" = ANY($1)`,
       [matchIds],
     );
-    const admins = await query<{ id: string }>(
-      `SELECT "id" FROM "User" WHERE "role" = 'ADMIN'`,
-    );
-    for (const a of admins) {
-      await insertRow("Notification", {
-        userId: a.id,
-        type: "partners.selected",
-        title: "Client selected partner(s) — schedule meetings",
-        message: `The client selected ${selectedPartners.length} partner${selectedPartners.length > 1 ? "s" : ""} for "${brief?.title ?? "a brief"}": ${selectedPartners.map((p) => p.name).join(", ")}. Set up alignment meetings.`,
-        link: `/admin/briefs/${briefId}`,
-      });
-    }
+    await notifyAdmins({
+      event: "selection.partners_selected_admin",
+      vars: {
+        briefTitle: brief?.title ?? "a brief",
+        partnerNames: selectedPartners.map((p) => p.name).join(", "),
+      },
+      link: `/admin/briefs/${briefId}`,
+      briefId,
+      idemKey: `selected:${briefId}`,
+    });
 
     revalidatePath(`/briefs/${briefId}/compare`);
     revalidatePath(`/admin/briefs/${briefId}`);
@@ -179,6 +178,16 @@ export const approveRevealAction = defineAction({
       to: "REVEAL_APPROVED",
       actor: userActor(ctx.user!.id, ctx.user!.companyId),
       reason: "Customer approved mutual identity reveal",
+    });
+
+    // Admin SLA: identities are out, meetings must follow.
+    const meetingHours = await getSetting("reveal_to_meeting_hours");
+    await startTimer({
+      entityType: "brief",
+      entityId: briefId,
+      timerType: "reveal_to_meeting",
+      deadlineAt: new Date(Date.now() + meetingHours * 3_600_000),
+      meta: { briefId },
     });
 
     // M11.1 — notify both sides now that the reveal event happened.
