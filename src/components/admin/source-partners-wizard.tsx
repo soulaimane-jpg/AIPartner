@@ -175,7 +175,7 @@ export function SourcePartnersWizard({
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-card overflow-hidden">
+    <div className="customer-panel overflow-hidden">
       <header className="px-6 py-4 border-b border-line bg-surface-1">
         <div className="flex items-center gap-3">
           <div className="grid h-9 w-9 place-items-center rounded-lg bg-brand-1/10 text-brand-1">
@@ -230,14 +230,14 @@ export function SourcePartnersWizard({
                 <li
                   key={p.id}
                   className={`flex items-start gap-3 p-3 cursor-pointer ${
-                    selected ? "bg-brand-1/5" : "hover:bg-surface-1"
+                    selected ? "bg-primary/5" : "hover:bg-primary/5"
                   }`}
                   onClick={() => toggle(p.id)}
                 >
                   <div
                     className={`mt-0.5 grid h-5 w-5 place-items-center rounded-md border ${
                       selected
-                        ? "bg-brand-1 border-brand-1 text-white"
+                        ? "border-primary bg-primary text-primary-foreground"
                         : "border-line bg-card"
                     }`}
                   >
@@ -249,7 +249,7 @@ export function SourcePartnersWizard({
                         {p.name}
                       </span>
                       {p.tier && (
-                        <span className="text-[10px] uppercase tracking-[0.06em] font-semibold bg-amber-100 text-amber-900 rounded px-1.5 py-0.5">
+                        <span className="text-[10px] uppercase tracking-[0.06em] font-semibold bg-primary/10 text-primary rounded px-1.5 py-0.5">
                           {p.tier}
                         </span>
                       )}
@@ -288,7 +288,7 @@ export function SourcePartnersWizard({
               );
             })}
             {filtered.length === 0 && (
-              <li className="p-6 text-center text-[13px] text-muted-foreground italic">
+              <li className="p-6 text-center text-[13px] text-muted-foreground">
                 No partners match that search.
               </li>
             )}
@@ -305,7 +305,7 @@ export function SourcePartnersWizard({
             return (
               <div
                 key={p.id}
-                className="rounded-xl border border-line bg-surface-1 p-4 space-y-3"
+                className="rounded-xl border border-line bg-card p-4 space-y-3"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div>

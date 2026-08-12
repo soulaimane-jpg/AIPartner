@@ -66,24 +66,24 @@ export default async function AdminPartnersPage() {
     });
 
   return (
-    <div className="space-y-8 pb-20">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900 uppercase italic">Partner <span className="text-blue-600">Network</span></h1>
-        <p className="text-slate-500 font-mono text-xs ">
-          Verified Engineering Entities & Capability Matrix
-        </p>
-      </div>
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header">
+        <div>
+          <div className="eyebrow text-primary">Verified Engineering Entities & Capability Matrix</div>
+          <h1 className="portal-page-title">Partner Network</h1>
+        </div>
+      </header>
 
       <PartnerVerificationQueue partners={pending} />
 
-      <Card className="bg-white border-slate-200 shadow-sm">
-        <CardHeader className="border-b border-slate-200 bg-white px-8 py-6">
-          <CardTitle className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+      <Card className="customer-table bg-card shadow-elev-1">
+        <CardHeader className="customer-panel-header">
+          <CardTitle className="text-sm font-bold text-foreground uppercase tracking-wider">
             Network Status: {partners.length} Nodes Online
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-white/5">
+          <div className="divide-y divide-line">
             {partners.map((p) => {
               const specs = safeJsonParse<string[]>(
                 p.specializations ?? "[]",
@@ -92,13 +92,13 @@ export default async function AdminPartnersPage() {
               return (
                 <div
                   key={p.id}
-                  className="flex flex-col p-8 hover:bg-slate-50 transition-all group gap-6"
+                  className="flex flex-col p-5 hover:bg-primary/5 transition-all group gap-6"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-3">
-                        <h3 className="text-2xl font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{p.name}</h3>
-                        <Badge variant="outline" className="border-blue-200 text-blue-600 bg-blue-50 text-xs font-semibold tracking-widest px-3">
+                        <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors">{p.name}</h3>
+                        <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary text-xs font-semibold tracking-widest px-3">
                           {p.tier ?? "MEMBER"}
                         </Badge>
                         <Badge
@@ -107,43 +107,43 @@ export default async function AdminPartnersPage() {
                             p.verificationStatus === "APPROVED"
                               ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                               : p.verificationStatus === "REJECTED"
-                                ? "border-rose-200 bg-rose-50 text-rose-700"
+                                ? "border-red-200 bg-red-50 text-red-700"
                                 : "border-amber-200 bg-amber-50 text-amber-800"
                           }`}
                         >
                           {p.verificationStatus}
                         </Badge>
                       </div>
-                      <div className="text-sm font-medium text-slate-500 font-mono uppercase tracking-wider">
+                      <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                         {p.tagline ?? "—"}
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-slate-600 ">
-                      <div className="px-3 py-1 rounded-lg bg-white border border-slate-200">
-                        <span className="text-slate-500 font-bold">{p.usersCount}</span> Operators
+                    <div className="flex flex-wrap items-center gap-4 text-xs text-foreground/70 ">
+                      <div className="px-3 py-1 rounded-lg bg-card border border-border">
+                        <span className="text-muted-foreground font-bold">{p.usersCount}</span> Operators
                       </div>
-                      <div className="px-3 py-1 rounded-lg bg-white border border-slate-200">
-                        <span className="text-blue-600 font-bold">{p.matchesCount}</span> Engagements
+                      <div className="px-3 py-1 rounded-lg bg-card border border-border">
+                        <span className="text-primary font-bold">{p.matchesCount}</span> Engagements
                       </div>
-                      <div className="px-3 py-1 rounded-lg bg-white border border-slate-200">
-                        <span className="text-blue-600 font-bold">{p.proposalsCount}</span> SOWs
+                      <div className="px-3 py-1 rounded-lg bg-card border border-border">
+                        <span className="text-primary font-bold">{p.proposalsCount}</span> SOWs
                       </div>
-                      <div className="px-3 py-1 rounded-lg bg-white border border-slate-200">
+                      <div className="px-3 py-1 rounded-lg bg-card border border-border">
                         Joined {timeAgo(p.createdAt)}
                       </div>
                     </div>
                   </div>
                   
                   {specs.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-200 mt-auto">
-                      <span className="text-xs font-semibold text-slate-700  w-full mb-1">Capabilities:</span>
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-border mt-auto">
+                      <span className="text-xs font-semibold text-foreground/80  w-full mb-1">Capabilities:</span>
                       {specs.slice(0, 10).map((s) => (
-                        <Badge key={s} variant="outline" className="border-slate-200 bg-slate-50 text-slate-500 font-mono text-xs hover:border-blue-200 transition-colors">
+                        <Badge key={s} variant="outline" className="border-border bg-secondary/50 text-muted-foreground text-xs hover:border-primary/30 transition-colors">
                           {s.toUpperCase()}
                         </Badge>
                       ))}
                       {specs.length > 10 && (
-                        <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600 text-xs">
+                        <Badge variant="outline" className="border-border bg-secondary/50 text-foreground/70 text-xs">
                           +{specs.length - 10} MORE
                         </Badge>
                       )}

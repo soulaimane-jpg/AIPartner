@@ -47,26 +47,31 @@ const BENEFITS = [
 
 export default function GooglerOnboardingPage() {
   return (
-    <div className="space-y-10 pb-20">
-      <div className="max-w-3xl">
-        <div className="text-xs uppercase tracking-wider font-semibold text-primary">
-          For Google Sales Reps
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header">
+        <div className="flex items-start gap-3">
+          <span className="portal-icon-box" aria-hidden>
+            <Zap className="h-[18px] w-[18px]" />
+          </span>
+          <div>
+            <div className="eyebrow text-primary">For Google Sales Reps</div>
+            <h1 className="portal-page-title">
+              Refer a customer. Keep full visibility.
+            </h1>
+            <p className="portal-page-description">
+              AI Partner turns a customer&apos;s project goals into a clean Statement
+              of Work, matches them with vetted GCP engineering partners, and
+              keeps you in the loop from first click to signed engagement.
+            </p>
+          </div>
         </div>
-        <h1 className="text-3xl font-bold text-foreground mt-2 leading-tight">
-          Refer a customer. Keep full visibility.
-        </h1>
-        <p className="text-base text-muted-foreground mt-3 leading-relaxed">
-          AI Partner turns a customer&apos;s project goals into a clean Statement
-          of Work, matches them with vetted GCP engineering partners, and
-          keeps you in the loop from first click to signed engagement.
-        </p>
-      </div>
+      </header>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {BENEFITS.map((b) => (
           <div
             key={b.title}
-            className="rounded-2xl border border-border bg-white p-5 space-y-2"
+            className="customer-panel space-y-2 p-5"
           >
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
               <b.icon className="h-5 w-5" />
@@ -81,7 +86,7 @@ export default function GooglerOnboardingPage() {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-border bg-gradient-to-br from-primary/[0.04] to-transparent p-6 sm:p-8 space-y-5">
+      <div className="customer-panel space-y-5 p-5 sm:p-6">
         <div className="text-xs uppercase tracking-wider font-semibold text-primary">
           How it works
         </div>
@@ -126,12 +131,12 @@ export default function GooglerOnboardingPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button asChild className="h-11 px-6">
+        <Button asChild>
           <Link href="/google/leads/new">
             <UserPlus className="h-4 w-4 mr-2" /> Refer your first customer
           </Link>
         </Button>
-        <Button asChild variant="outline" className="h-11 px-6">
+        <Button asChild variant="outline">
           <Link href="/google">
             Go to overview <ArrowRight className="h-4 w-4 ml-2" />
           </Link>

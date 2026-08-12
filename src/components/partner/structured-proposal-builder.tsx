@@ -132,7 +132,7 @@ export function StructuredProposalBuilder({
         return (
           <section
             key={key}
-            className="rounded-lg border border-border bg-background overflow-hidden"
+            className="overflow-hidden rounded-lg border border-border bg-surface-sunk"
           >
             <header className="px-4 py-2.5 border-b border-border flex items-center gap-2">
               <h3 className="text-[13px] font-semibold text-foreground">
@@ -158,7 +158,7 @@ export function StructuredProposalBuilder({
                         onClick={() => patch(key, { pricingModel: model })}
                         className={`rounded-md border px-3 py-1.5 text-[12.5px] transition-colors ${
                           s.pricingModel === model
-                            ? "border-foreground bg-foreground text-background"
+                            ? "border-primary bg-primary text-primary-foreground"
                             : "border-border bg-background text-foreground hover:bg-secondary/60"
                         }`}
                       >
@@ -280,7 +280,7 @@ export function StructuredProposalBuilder({
         </p>
       )}
 
-      <div className="rounded-lg border border-border bg-background p-5 space-y-3">
+      <div className="space-y-3 rounded-lg border border-border bg-surface-sunk p-5">
         {canSubmit && (
           <>
             <p className="text-[12.5px] text-muted-foreground">

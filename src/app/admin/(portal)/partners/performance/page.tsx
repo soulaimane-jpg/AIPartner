@@ -25,9 +25,9 @@ export default async function PartnerOpsPage() {
   const rows = await listPartnerOps({ sinceDays: 90 });
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header block">
+        <h1 className="portal-page-title flex items-center gap-2">
           <BarChart3 className="h-6 w-6 text-primary" />
           Partner operations
         </h1>

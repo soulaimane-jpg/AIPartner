@@ -114,7 +114,7 @@ export function TagCurationTable({
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             placeholder="Filter by label, slug or facet"
-            className="h-10 rounded-xl bg-white pl-9 text-[13px]"
+            className="h-10 rounded-xl bg-background pl-9 text-[13px]"
           />
         </div>
       </div>
@@ -342,7 +342,7 @@ function TagRow({
                 onMerge(e.target.value);
                 setMode("none");
               }}
-              className="h-10 w-full max-w-md rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-900"
+              className="h-10 w-full max-w-md rounded-xl border border-border bg-background px-3 text-[13px] text-foreground"
             >
               <option value="">Choose the surviving tag…</option>
               {mergeTargets.map((t) => (

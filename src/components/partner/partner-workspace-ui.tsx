@@ -38,13 +38,15 @@ export function PartnerPageHeader({
 }) {
   return (
     <header className="portal-page-header">
-      <div className="min-w-0">
-        <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          {eyebrow}
+      <div className="flex min-w-0 items-start gap-3">
+        <span className="portal-icon-box bg-primary/10 text-primary ring-1 ring-primary/15" aria-hidden>
+          <BriefcaseBusiness className="h-[18px] w-[18px]" />
+        </span>
+        <div className="min-w-0">
+          <div className="eyebrow text-primary">{eyebrow}</div>
+          <h1 className="portal-page-title text-balance">{title}</h1>
+          <p className="portal-page-description text-pretty">{description}</p>
         </div>
-        <h1 className="portal-page-title text-balance">{title}</h1>
-        <p className="portal-page-description text-pretty">{description}</p>
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </header>
@@ -67,10 +69,10 @@ export function PartnerMetricCard({
   tone?: "blue" | "amber" | "emerald" | "slate";
 }) {
   const styles = {
-    blue: "bg-blue-50 text-blue-700 border-blue-100",
-    amber: "bg-amber-50 text-amber-700 border-amber-100",
-    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
-    slate: "bg-slate-50 text-slate-700 border-slate-200",
+    blue: "border-primary/20 bg-primary/10 text-primary",
+    amber: "border-amber-100 bg-amber-50 text-amber-700",
+    emerald: "border-emerald-100 bg-emerald-50 text-emerald-700",
+    slate: "border-border bg-secondary text-muted-foreground",
   }[tone];
 
   const content = (
@@ -168,7 +170,7 @@ export function PartnerOpportunityCard({
                   "rounded-full px-2.5 py-1 text-[10.5px] font-semibold",
                   actionRequired && "border-amber-200 bg-amber-50 text-amber-800",
                   selected && "border-emerald-200 bg-emerald-50 text-emerald-800",
-                  !actionRequired && !selected && "border-blue-100 bg-blue-50 text-blue-700",
+                  !actionRequired && !selected && "border-primary/20 bg-primary/5 text-primary",
                 )}
               >
                 {actionRequired && <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />}
@@ -269,7 +271,7 @@ export function PartnerPipelineSection({
   tone: "blue" | "amber" | "emerald";
 }) {
   const style = {
-    blue: "border-blue-100 bg-blue-50 text-blue-700",
+    blue: "border-primary/20 bg-primary/10 text-primary",
     amber: "border-amber-100 bg-amber-50 text-amber-700",
     emerald: "border-emerald-100 bg-emerald-50 text-emerald-700",
   }[tone];

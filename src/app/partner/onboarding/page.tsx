@@ -33,7 +33,7 @@ export default async function PartnerOnboardingPage() {
   if (state.onboardingCompleted) redirect("/partner/profile");
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="portal-root min-h-screen bg-background" data-portal-appearance="platform">
       <div className="page-container px-4 sm:px-6">
         <OnboardingWizard
           initialValues={state.values}

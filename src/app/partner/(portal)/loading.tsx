@@ -1,6 +1,6 @@
 export default function PartnerPortalLoading() {
   return (
-    <div className="page-container-wide space-y-7 py-7 sm:py-9 lg:py-10" aria-busy="true" aria-label="Loading partner workspace">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10" aria-busy="true" aria-label="Loading partner workspace">
       <div className="space-y-3 border-b border-line pb-6">
         <div className="skeleton h-3 w-32" />
         <div className="skeleton h-9 w-full max-w-md" />

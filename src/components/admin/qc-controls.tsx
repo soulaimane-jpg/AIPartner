@@ -75,7 +75,7 @@ export function QcControls({
   if (submitted.length === 0) return null;
 
   return (
-    <div className="rounded-lg border border-border bg-background p-5 space-y-4">
+    <div className="customer-panel space-y-4 p-5">
       <header className="flex items-center gap-2">
         <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
         <h2 className="text-[14px] font-semibold text-foreground">
@@ -91,7 +91,7 @@ export function QcControls({
                 {p.partnerName}
               </span>
               {p.placeholderLabel && (
-                <Badge variant="outline" className="text-[10px] font-mono">
+                <Badge variant="outline" className="text-[10px] font-medium">
                   {p.placeholderLabel}
                 </Badge>
               )}

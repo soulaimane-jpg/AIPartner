@@ -76,7 +76,7 @@ export function DeclineReasonDialog({
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-md bg-card border border-line sm:rounded-2xl shadow-xl flex flex-col"
+        className="w-full sm:max-w-md bg-card border border-line sm:rounded-2xl shadow-elev-2 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-start justify-between gap-3 px-5 py-3 border-b border-line">

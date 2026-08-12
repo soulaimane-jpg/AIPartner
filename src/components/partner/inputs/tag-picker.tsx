@@ -191,7 +191,7 @@ export function TagPicker({
           <Badge
             key={id}
             variant="outline"
-            className="gap-1.5 rounded-full border-primary/25 bg-primary-soft py-1 pl-3 pr-1.5 text-[12px] font-medium text-primary"
+            className="gap-1.5 rounded-full border-primary/25 bg-primary/10 py-1 pl-3 pr-1.5 text-[12px] font-medium text-primary"
           >
             {labels[id] ?? `${id.slice(0, 8)}…`}
             {!disabled && (
@@ -223,7 +223,7 @@ export function TagPicker({
               onFocus={() => setOpen(true)}
               placeholder={atMax ? `Limit of ${max} reached` : placeholder}
               disabled={atMax && !term}
-              className="h-11 rounded-xl bg-white pl-9 text-[13px]"
+              className="h-11 rounded-xl bg-card pl-9 text-[13px]"
             />
             {loading && (
               <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
@@ -242,7 +242,7 @@ export function TagPicker({
                     className={cn(
                       "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-[13px] transition-colors",
                       selected
-                        ? "bg-primary-soft text-primary"
+                        ? "bg-primary/10 text-primary"
                         : "text-foreground hover:bg-secondary",
                     )}
                   >

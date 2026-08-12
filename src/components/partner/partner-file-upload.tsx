@@ -170,7 +170,7 @@ export function PartnerFileUpload({
       }}
       className={cn(
         "rounded-lg border border-line bg-card p-5 space-y-3 transition-colors",
-        dragging && "ring-2 ring-blue-500/40 bg-blue-50/50",
+        dragging && "bg-primary/5 ring-2 ring-primary/30",
       )}
     >
       <div className="flex items-center gap-2">
@@ -197,7 +197,7 @@ export function PartnerFileUpload({
               </span>
               <a
                 href={`/api/matches/${matchId}/attachments/${a.id}`}
-                className="rounded p-0.5 opacity-0 transition-opacity hover:bg-black/5 focus:opacity-100 group-hover:opacity-100"
+                className="rounded p-0.5 opacity-0 transition-opacity hover:bg-secondary focus:opacity-100 group-hover:opacity-100"
                 aria-label={`Download ${a.filename}`}
               >
                 <Download className="h-3 w-3" />
@@ -207,7 +207,7 @@ export function PartnerFileUpload({
                   type="button"
                   onClick={() => void remove(a.id)}
                   disabled={busy === a.id}
-                  className="rounded p-0.5 opacity-0 transition-opacity hover:bg-black/5 focus:opacity-100 group-hover:opacity-100 disabled:opacity-50"
+                  className="rounded p-0.5 opacity-0 transition-opacity hover:bg-secondary focus:opacity-100 group-hover:opacity-100 disabled:opacity-50"
                   aria-label={`Remove ${a.filename}`}
                 >
                   {busy === a.id ? (
@@ -253,7 +253,7 @@ export function PartnerFileUpload({
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={Boolean(busy)}
-            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-primary border border-line bg-background hover:bg-surface-1 transition-colors disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-primary border border-line bg-card hover:bg-primary/5 transition-colors disabled:opacity-60"
           >
             {busy ? (
               <>

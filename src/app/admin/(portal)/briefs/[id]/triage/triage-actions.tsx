@@ -55,7 +55,7 @@ export function TriageActions({
   };
 
   return (
-    <div className="rounded-lg border border-border bg-background p-5 space-y-4">
+    <div className="customer-panel space-y-4 p-5">
       <h2 className="text-[14px] font-semibold text-foreground">
         Triage decision
       </h2>

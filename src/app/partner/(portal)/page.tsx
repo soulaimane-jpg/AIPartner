@@ -39,7 +39,7 @@ export default async function PartnerDashboardPage({
     !pillarState.onboardingCompleted && workspace.items.length === 0;
 
   return (
-    <div className="page-container-wide portal-page py-7 sm:py-9 lg:py-10">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
       {/* Header */}
       <PartnerPageHeader
         eyebrow="Partner workspace"
@@ -76,7 +76,7 @@ export default async function PartnerDashboardPage({
         <Card className="border-amber-200 bg-amber-50/70 shadow-none">
           <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-amber-200 bg-white text-amber-700">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-amber-200 bg-card text-amber-700">
                 <Mail className="h-4 w-4" />
               </div>
               <div>
@@ -86,7 +86,7 @@ export default async function PartnerDashboardPage({
                 </p>
               </div>
             </div>
-            <Button asChild size="sm" variant="outline" className="shrink-0 border-amber-300 bg-white text-amber-950 hover:bg-amber-100">
+            <Button asChild size="sm" variant="outline" className="shrink-0 border-amber-300 bg-card text-amber-950 hover:bg-amber-100">
               <Link href="/partner/profile">Add routing email</Link>
             </Button>
           </CardContent>
@@ -156,7 +156,7 @@ export default async function PartnerDashboardPage({
         <Card className="h-fit border-line bg-card shadow-elev-1">
           <CardContent className="p-5 sm:p-6">
             <div className="flex items-start justify-between gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl border border-blue-100 bg-blue-50 text-blue-700">
+              <div className="portal-icon-box h-10 w-10 rounded-xl">
                 <Building2 className="h-[18px] w-[18px]" />
               </div>
               <span className="rounded-full bg-secondary px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">

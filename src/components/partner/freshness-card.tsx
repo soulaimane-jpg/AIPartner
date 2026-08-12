@@ -62,7 +62,7 @@ export function FreshnessCard({ freshness }: { freshness: Freshness }) {
         <div className="flex items-start gap-3">
           <div
             className={cn(
-              "grid h-9 w-9 shrink-0 place-items-center rounded-lg border bg-white",
+              "grid h-9 w-9 shrink-0 place-items-center rounded-lg border bg-card",
               tone.icon,
             )}
           >

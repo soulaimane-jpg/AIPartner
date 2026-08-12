@@ -45,9 +45,9 @@ export default async function AnonymizationQueuePage() {
   }
 
   return (
-    <div className="space-y-6 pb-20">
-      <header>
-        <h1 className="text-xl font-semibold text-foreground">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header block">
+        <h1 className="portal-page-title">
           Anonymization queue
         </h1>
         <p className="mt-1 text-[13.5px] text-muted-foreground max-w-2xl">
@@ -59,7 +59,7 @@ export default async function AnonymizationQueuePage() {
       </header>
 
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-10 text-center">
+        <div className="customer-panel border-dashed p-10 text-center">
           <p className="text-[13.5px] text-muted-foreground">
             Queue is clear — QC-passed proposals appear here automatically.
           </p>

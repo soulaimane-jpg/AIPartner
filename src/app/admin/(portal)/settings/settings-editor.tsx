@@ -33,7 +33,7 @@ export function SettingsEditor({ settings }: { settings: SettingRow[] }) {
   };
 
   return (
-    <div className="rounded-lg border border-border bg-background divide-y divide-border">
+    <div className="customer-panel divide-y divide-line">
       {settings.map((s) => (
         <div key={s.key} className="px-5 py-4 grid gap-2 sm:grid-cols-[240px_1fr_auto] sm:items-center">
           <div>

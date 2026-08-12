@@ -35,9 +35,9 @@ export default async function AdminLegalPage() {
   );
 
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="text-xl font-semibold text-foreground">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header block">
+        <h1 className="portal-page-title">
           Legal documents
         </h1>
         <p className="mt-1 text-[13.5px] text-muted-foreground max-w-2xl">
@@ -52,7 +52,7 @@ export default async function AdminLegalPage() {
         {docs.map(({ docType, doc, acceptances }) => (
           <section
             key={docType}
-            className="rounded-lg border border-border bg-background overflow-hidden"
+            className="customer-panel overflow-hidden"
           >
             <header className="px-5 py-3 border-b border-border flex items-center gap-3">
               <h2 className="text-[14px] font-semibold text-foreground">

@@ -53,7 +53,7 @@ export function LeadRoutingEmailCard({
       <div className="flex items-start gap-3">
         <div
           className={`grid h-10 w-10 place-items-center rounded-lg shrink-0 ${
-            isEmpty ? "bg-amber-100 text-amber-700" : "bg-brand-1/10 text-brand-1"
+            isEmpty ? "bg-amber-100 text-amber-700" : "bg-primary/10 text-primary"
           }`}
         >
           <Mail className="h-5 w-5" />

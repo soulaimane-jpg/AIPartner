@@ -109,7 +109,7 @@ export default async function PartnerBriefPage({
   const statusLabel = getPartnerStatusLabel(match.status, p?.status ?? null);
 
   return (
-    <div className="page-container-wide space-y-8 py-7 sm:py-9 lg:py-10">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
       <div className="space-y-5 border-b border-line pb-6">
         <Button asChild variant="ghost" size="sm" className="-ml-3 w-fit text-muted-foreground hover:text-foreground">
           <Link href={backHref}>
@@ -120,7 +120,7 @@ export default async function PartnerBriefPage({
         <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div className="min-w-0 max-w-3xl">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="rounded-full border-blue-100 bg-blue-50 px-2.5 py-1 text-[10.5px] font-semibold text-blue-700">
+              <Badge variant="outline" className="rounded-full border-primary/20 bg-primary/10 px-2.5 py-1 text-[10.5px] font-semibold text-primary">
                 {statusLabel}
               </Badge>
               <span className="text-[11.5px] text-muted-foreground">{services.length} required {services.length === 1 ? "service" : "services"}</span>
@@ -165,62 +165,62 @@ export default async function PartnerBriefPage({
         />
       )}
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-8">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
           <Card className="relative overflow-hidden border-line bg-card shadow-elev-1">
             <div className="absolute inset-x-0 top-0 h-0.5 bg-primary"></div>
-            <CardHeader className="border-b border-line bg-card p-6 sm:p-7">
+            <CardHeader className="border-b border-line bg-card p-5 sm:p-6">
               <CardTitle className="flex items-center gap-3 text-[16px] font-semibold tracking-tight text-foreground">
                 <FileText className="h-5 w-5 text-primary" /> Customer brief
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-8 p-6 sm:p-7 lg:p-8">
-              <div className="space-y-4">
-                <h3 className="text-xs font-semibold  text-slate-600">
+            <CardContent className="space-y-6 p-5 sm:p-6">
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold text-muted-foreground">
                   Project overview
                 </h3>
-                <p className="text-base leading-relaxed text-slate-600">
+                <p className="text-[13.5px] leading-relaxed text-foreground">
                   {brief.executiveSummary || "No overview provided."}
                 </p>
               </div>
 
               <div className="border-t border-line"></div>
 
-              <div className="space-y-6">
-                <h3 className="text-xs font-semibold  text-slate-600">
+              <div className="space-y-4">
+                <h3 className="text-xs font-semibold text-muted-foreground">
                   Scope requirements
                 </h3>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {scope.map((s, i) => (
-                    <div key={i} className="rounded-2xl border border-slate-200 bg-slate-50 p-6 hover:bg-slate-100 transition-colors">
-                      <div className="text-xs font-mono text-blue-600  mb-2">REQ-0{i+1}</div>
-                      <div className="font-bold text-slate-900 mb-2">{s.title}</div>
-                      <div className="text-sm text-slate-500 leading-relaxed">{s.detail}</div>
+                    <div key={i} className="rounded-xl border border-border bg-surface-sunk p-4 transition-colors hover:border-primary/25 hover:bg-primary/5">
+                      <div className="mb-2 font-mono text-[11px] text-primary">REQ-0{i+1}</div>
+                      <div className="mb-1.5 text-[13.5px] font-semibold text-foreground">{s.title}</div>
+                      <div className="text-[12.5px] leading-relaxed text-muted-foreground">{s.detail}</div>
                     </div>
                   ))}
                   {scope.length === 0 && (
-                    <div className="sm:col-span-2 text-sm text-slate-500 italic">No scope requirements defined.</div>
+                    <div className="text-sm italic text-muted-foreground sm:col-span-2">No scope requirements defined.</div>
                   )}
                 </div>
               </div>
 
               <div className="border-t border-line"></div>
 
-              <div className="space-y-6">
-                <h3 className="text-xs font-semibold  text-slate-600">
+              <div className="space-y-4">
+                <h3 className="text-xs font-semibold text-muted-foreground">
                   Delivery timeline
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {timeline.map((m, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 transition-colors">
-                      <span className="text-sm font-medium text-slate-600">{m.title}</span>
-                      <Badge variant="outline" className="shrink-0 bg-white font-mono text-xs border-slate-200 text-blue-600">
+                    <div key={i} className="flex items-center justify-between rounded-lg border border-border bg-card p-3.5 transition-colors hover:bg-primary/5">
+                      <span className="text-[13px] font-medium text-foreground">{m.title}</span>
+                      <Badge variant="outline" className="shrink-0 border-border bg-card font-mono text-[11px] text-primary">
                         {m.date}
                       </Badge>
                     </div>
                   ))}
                   {timeline.length === 0 && (
-                    <div className="text-sm text-slate-500 italic">No timeline data available.</div>
+                    <div className="text-sm italic text-muted-foreground">No timeline data available.</div>
                   )}
                 </div>
               </div>
@@ -228,27 +228,27 @@ export default async function PartnerBriefPage({
           </Card>
           
           <Card className="border-line bg-card shadow-elev-1">
-            <CardContent className="p-6 sm:p-7">
-              <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex-1 space-y-3">
-                  <div className="text-xs font-semibold  text-slate-600">
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex-1 space-y-2">
+                  <div className="text-xs font-semibold text-muted-foreground">
                     Procurement
                   </div>
-                  <div className="text-[15px] font-semibold capitalize text-foreground">
+                  <div className="text-[14px] font-semibold capitalize text-foreground">
                     {brief.procurement.replace("_", " ").toLowerCase()}
                   </div>
                 </div>
-                <div className="flex-1 space-y-4">
-                  <div className="text-xs font-semibold  text-slate-600">
+                <div className="flex-1 space-y-3">
+                  <div className="text-xs font-semibold text-muted-foreground">
                     Required services
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {services.map((s) => (
-                      <Badge key={s} variant="outline" className="border-blue-200 text-blue-600 bg-blue-50 px-3 py-1">
+                      <Badge key={s} variant="outline" className="border-primary/20 bg-primary/5 px-3 py-1 text-primary">
                         {SERVICE_CATEGORIES_LABEL[s]}
                       </Badge>
                     ))}
-                    {services.length === 0 && <span className="text-sm text-slate-500">—</span>}
+                    {services.length === 0 && <span className="text-sm text-muted-foreground">—</span>}
                   </div>
                 </div>
               </div>
@@ -303,14 +303,14 @@ export default async function PartnerBriefPage({
       {["PARTNER_ACCEPTED", "EXTENSION_REQUESTED", "PROPOSAL_SUBMITTED", "QC_PASSED"].includes(
         match.status,
       ) && (
-        <Card className="bg-white border-slate-200 shadow-sm overflow-hidden relative">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent opacity-30"></div>
-          <CardHeader className="border-b border-slate-200 bg-white p-6">
-            <CardTitle className="flex items-center gap-3 text-base font-bold text-slate-900 tracking-tight">
-              <Send className="h-5 w-5 text-blue-600" /> Proposal
+        <Card className="relative overflow-hidden border-line bg-card shadow-elev-1">
+          <div className="absolute inset-x-0 top-0 h-0.5 bg-primary"></div>
+          <CardHeader className="border-b border-line bg-card p-5 sm:p-6">
+            <CardTitle className="flex items-center gap-3 text-[16px] font-semibold tracking-tight text-foreground">
+              <Send className="h-5 w-5 text-primary" /> Proposal
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-5 sm:p-6">
             <StructuredProposalBuilder
               matchId={match.id}
               briefId={brief.id}

@@ -47,15 +47,15 @@ export function PartnerVerificationQueue({
 }) {
   if (partners.length === 0) {
     return (
-      <Card className="bg-white border-slate-200 shadow-sm">
-        <CardHeader className="border-b border-slate-200 px-8 py-6">
-          <CardTitle className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+      <Card className="customer-panel bg-card">
+        <CardHeader className="customer-panel-header">
+          <CardTitle className="text-sm font-bold text-foreground uppercase tracking-wider">
             Partner verification
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-8 py-10 text-center">
+        <CardContent className="px-5 py-8 text-center">
           <ShieldCheck className="mx-auto h-8 w-8 text-emerald-600" />
-          <p className="mt-3 text-sm text-slate-600">
+          <p className="mt-3 text-sm text-foreground/70">
             No partners awaiting verification.
           </p>
         </CardContent>
@@ -64,19 +64,19 @@ export function PartnerVerificationQueue({
   }
 
   return (
-    <Card className="bg-white border-amber-200 shadow-sm">
-      <CardHeader className="border-b border-amber-200 bg-amber-50/60 px-8 py-6">
-        <CardTitle className="flex items-center gap-2 text-sm font-bold text-slate-900 uppercase tracking-wider">
+    <Card className="customer-panel border-amber-200 bg-card">
+      <CardHeader className="border-b border-amber-200 bg-amber-50/60 px-5 py-4">
+        <CardTitle className="flex items-center gap-2 text-sm font-bold text-foreground uppercase tracking-wider">
           <ShieldAlert className="h-4 w-4 text-amber-600" />
           Partner verification — {partners.length} awaiting review
         </CardTitle>
-        <p className="mt-1 text-xs text-slate-600">
+        <p className="mt-1 text-xs text-foreground/70">
           Unverified partners cannot be sourced, invited, or shown to any
           customer.
         </p>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="divide-y divide-slate-200">
+        <div className="divide-y divide-line">
           {partners.map((p) => (
             <PendingRow key={p.id} partner={p} />
           ))}
@@ -134,11 +134,11 @@ function PendingRow({ partner }: { partner: PendingPartner }) {
   }
 
   return (
-    <div className="p-8 space-y-4">
+    <div className="p-5 space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1.5">
-          <h3 className="text-xl font-semibold text-slate-900">{partner.name}</h3>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+          <h3 className="text-base font-semibold text-foreground">{partner.name}</h3>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-foreground/70">
             <Badge
               variant="outline"
               className={
@@ -153,7 +153,7 @@ function PendingRow({ partner }: { partner: PendingPartner }) {
               {DOMAIN_REASON_COPY[partner.domainReason] ?? partner.domainReason}
             </span>
           </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-slate-500">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-muted-foreground">
             {partner.signupEmailDomain && (
               <span>Signup domain: @{partner.signupEmailDomain}</span>
             )}
@@ -162,7 +162,7 @@ function PendingRow({ partner }: { partner: PendingPartner }) {
                 href={partner.website}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="inline-flex items-center gap-1 text-blue-600 hover:underline"
+                className="inline-flex items-center gap-1 text-primary hover:underline"
               >
                 <Globe className="h-3 w-3" />
                 Website
@@ -173,7 +173,7 @@ function PendingRow({ partner }: { partner: PendingPartner }) {
                 href={partner.directoryUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="inline-flex items-center gap-1 text-blue-600 hover:underline"
+                className="inline-flex items-center gap-1 text-primary hover:underline"
               >
                 <Globe className="h-3 w-3" />
                 Partner directory
@@ -182,7 +182,7 @@ function PendingRow({ partner }: { partner: PendingPartner }) {
             <span>{partner.usersCount} user(s)</span>
           </div>
           {partner.contactEmails.length > 0 && (
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-muted-foreground">
               Contacts: {partner.contactEmails.join(", ")}
             </div>
           )}
@@ -210,12 +210,12 @@ function PendingRow({ partner }: { partner: PendingPartner }) {
       </div>
 
       {rejecting && (
-        <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:flex-row">
+        <div className="flex flex-col gap-2 rounded-lg border border-border bg-secondary/50 p-3 sm:flex-row">
           <input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Why is this partner rejected? The partner sees this."
-            className="flex-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+            className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
           />
           <Button size="sm" variant="destructive" onClick={handleReject} disabled={pending}>
             Confirm rejection

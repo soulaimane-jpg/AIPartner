@@ -31,87 +31,91 @@ export default async function GooglerAttributionPage() {
   ];
 
   return (
-    <div className="space-y-6 pb-20">
-      <div>
-        <Link
-          href="/google/leads"
-          className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground mb-3"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Your leads
-        </Link>
-        <h1 className="text-2xl font-bold text-foreground">Referral impact</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          What happened to the customers you sent to AI Partner.
-        </p>
-      </div>
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header">
+        <div className="flex items-start gap-3">
+          <span className="portal-icon-box" aria-hidden>
+            <TrendingUp className="h-[18px] w-[18px]" />
+          </span>
+          <div>
+            <Link
+              href="/google/leads"
+              className="mb-2 inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Your leads
+            </Link>
+            <h1 className="portal-page-title">Referral impact</h1>
+            <p className="portal-page-description">
+              What happened to the customers you sent to AI Partner.
+            </p>
+          </div>
+        </div>
+      </header>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {kpis.map((k) => (
-          <div
-            key={k.label}
-            className="rounded-xl border border-border bg-white px-4 py-3"
-          >
-            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div key={k.label} className="customer-panel px-4 py-3.5">
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
               {k.label}
             </div>
-            <div className="mt-1 text-xl font-semibold text-foreground">
+            <div className="mt-1 text-xl font-semibold tabular-nums text-foreground">
               {k.value}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="rounded-2xl border border-border bg-white overflow-hidden">
+      <div className="customer-table overflow-x-auto">
         {referrals.length === 0 ? (
-          <div className="px-6 py-14 text-center text-sm text-muted-foreground italic">
+          <div className="px-6 py-14 text-center text-sm italic text-muted-foreground">
             <TrendingUp className="mx-auto mb-3 h-8 w-8 text-muted-foreground/60" />
             Refer a customer and their progress will show up here.
           </div>
         ) : (
-          <table className="w-full text-left">
-            <thead className="bg-secondary/40 border-b border-border">
-              <tr className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-                <th className="px-6 py-3">Customer</th>
+          <table className="w-full min-w-[820px] text-left text-[13px]">
+            <thead className="border-b border-line bg-surface-sunk">
+              <tr className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                <th className="px-5 py-3 sm:px-6">Customer</th>
                 <th className="px-4 py-3">Briefs</th>
                 <th className="px-4 py-3">Furthest stage</th>
                 <th className="px-4 py-3">Engagements</th>
                 <th className="px-4 py-3 text-right">Referred</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-line">
               {referrals.map((r) => (
                 <tr
                   key={r.leadId}
-                  className="hover:bg-secondary/30 transition-colors"
+                  className="transition-colors hover:bg-primary/5"
                 >
-                  <td className="px-6 py-4">
+                  <td className="px-5 py-3.5 sm:px-6">
                     <Link
                       href={`/google/leads/${r.leadId}`}
-                      className="text-sm font-semibold text-foreground hover:text-primary"
+                      className="font-semibold text-foreground hover:text-primary"
                     >
                       {r.companyName ?? r.customerDomain}
                     </Link>
                     {!r.claimedAt && (
-                      <div className="text-xs text-muted-foreground mt-0.5">
+                      <div className="mt-0.5 text-xs text-muted-foreground">
                         Invite not yet claimed
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground">
+                  <td className="px-4 py-3.5 text-muted-foreground">
                     {r.briefCount}
                   </td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground">
+                  <td className="px-4 py-3.5 text-muted-foreground">
                     {r.furthestStage
                       ? (LEAD_STATE_LABELS[r.furthestStage] ?? r.furthestStage)
                       : "—"}
                   </td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground">
+                  <td className="px-4 py-3.5 text-muted-foreground">
                     {r.engagementsAccepted > 0
                       ? `${r.engagementsAccepted} · ${formatCurrency(r.influencedValueCents)}`
                       : "—"}
                   </td>
-                  <td className="px-4 py-4 text-xs text-muted-foreground text-right">
+                  <td className="px-4 py-3.5 text-right text-xs text-muted-foreground">
                     {timeAgo(r.invitedAt)}
                   </td>
                 </tr>

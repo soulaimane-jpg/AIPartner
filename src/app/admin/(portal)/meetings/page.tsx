@@ -26,7 +26,7 @@ export const dynamic = "force-dynamic";
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   SCHEDULED: {
     label: "Scheduled",
-    cls: "border-blue-200 text-blue-700 bg-blue-50",
+    cls: "border-primary/20 bg-primary/10 text-primary",
   },
   CANCELLED: {
     label: "Cancelled",
@@ -155,21 +155,13 @@ export default async function AdminMeetingsPage({
   }));
 
   return (
-    <div className="space-y-10">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
       {/* Header */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <header className="portal-page-header">
         <div>
-          <Badge
-            variant="outline"
-            className="mb-3 border-emerald-200 text-emerald-700 bg-emerald-50"
-          >
-            <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            MEETINGS
-          </Badge>
-          <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-            Customer ↔ Partner Sync
-          </h1>
-          <p className="mt-2 text-sm text-slate-600 max-w-2xl">
+          <div className="eyebrow text-primary">MEETINGS</div>
+          <h1 className="portal-page-title">Customer ↔ Partner Sync</h1>
+          <p className="portal-page-description">
             Schedule instant or future Google Meet calls between customers
             and partners. Invitees receive an .ics + Meet link via email
             and an in-app notification.
@@ -214,30 +206,30 @@ export default async function AdminMeetingsPage({
       )}
 
       {/* Connection card */}
-      <Card className="bg-white border-slate-200 shadow-sm">
+      <Card className="customer-panel bg-card shadow-elev-1">
         <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start gap-4">
             <div
               className={cn(
                 "h-11 w-11 rounded-xl grid place-items-center shrink-0",
                 isConnected
-                  ? "bg-emerald-50 text-emerald-600"
-                  : "bg-slate-100 text-slate-500",
+                  ? "bg-emerald-50 text-primary"
+                  : "bg-secondary text-muted-foreground",
               )}
             >
               <CalendarDays className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-sm font-semibold text-slate-900">
+              <div className="text-sm font-semibold text-foreground">
                 {isConnected
                   ? "Google Calendar connected"
                   : "Connect Google Calendar"}
               </div>
-              <div className="mt-0.5 text-[12.5px] text-slate-500">
+              <div className="mt-0.5 text-[12.5px] text-muted-foreground">
                 {isConnected ? (
                   <>
                     Organising as{" "}
-                    <span className="font-mono text-slate-700">
+                    <span className="text-foreground/80">
                       {token?.accountEmail ?? "(unknown)"}
                     </span>
                     {" "}— Meet links auto-generate.
@@ -269,8 +261,8 @@ export default async function AdminMeetingsPage({
       {/* Upcoming */}
       <section className="space-y-4">
         <header className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <CalendarClock className="h-4 w-4 text-blue-600" />
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 text-primary" />
             Upcoming
             <Badge variant="outline" className="ml-1">
               {upcoming.length}
@@ -296,7 +288,7 @@ export default async function AdminMeetingsPage({
       {/* Past */}
       {past.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
             Past & cancelled
             <Badge variant="outline" className="ml-1">
               {past.length}
@@ -354,7 +346,7 @@ function MeetingRow({ m, muted }: { m: MeetingRowItem; muted?: boolean }) {
   return (
     <Card
       className={cn(
-        "bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow",
+        "customer-panel bg-card shadow-elev-1 hover:shadow-md transition-shadow",
         muted && "opacity-80",
       )}
     >
@@ -366,14 +358,14 @@ function MeetingRow({ m, muted }: { m: MeetingRowItem; muted?: boolean }) {
               {m.kind === "INSTANT" ? (
                 <Badge
                   variant="outline"
-                  className="border-amber-200 text-amber-700 bg-amber-50 text-[10px]"
+                  className="border-primary/20 bg-primary/10 text-primary text-[10px]"
                 >
                   <Zap className="h-3 w-3 mr-1" /> INSTANT
                 </Badge>
               ) : (
                 <Badge
                   variant="outline"
-                  className="border-slate-200 text-slate-600 bg-slate-50 text-[10px]"
+                  className="border-border text-foreground/70 bg-secondary/50 text-[10px]"
                 >
                   <CalendarClock className="h-3 w-3 mr-1" /> SCHEDULED
                 </Badge>
@@ -381,35 +373,35 @@ function MeetingRow({ m, muted }: { m: MeetingRowItem; muted?: boolean }) {
               <Badge variant="outline" className={cn("text-[10px]", status.cls)}>
                 {status.label}
               </Badge>
-              <span className="text-[12px] font-mono text-slate-500">
+              <span className="text-[12px] text-muted-foreground">
                 {when} · {durationMin}m · {m.timeZone}
               </span>
             </div>
-            <h3 className="mt-2 text-base font-semibold text-slate-900 truncate">
+            <h3 className="mt-2 text-base font-semibold text-foreground truncate">
               {m.title}
             </h3>
             {m.agenda && (
-              <p className="mt-1 text-[12.5px] text-slate-600 line-clamp-2">
+              <p className="mt-1 text-[12.5px] text-foreground/70 line-clamp-2">
                 {m.agenda}
               </p>
             )}
-            <div className="mt-3 flex items-center gap-2 flex-wrap text-[12px] text-slate-700">
+            <div className="mt-3 flex items-center gap-2 flex-wrap text-[12px] text-foreground/80">
               {m.customerUser && (
-                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-50 border border-blue-100">
-                  <UserCircle className="h-3.5 w-3.5 text-blue-600" />
+                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10 border border-primary/15">
+                  <UserCircle className="h-3.5 w-3.5 text-primary" />
                   {m.customerUser.name ?? m.customerUser.email}
                 </span>
               )}
               {m.partnerUser && (
-                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-50 border border-emerald-100">
-                  <Building2 className="h-3.5 w-3.5 text-emerald-600" />
+                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10 border border-primary/15">
+                  <Building2 className="h-3.5 w-3.5 text-primary" />
                   {m.partnerUser.company?.name ?? m.partnerUser.email}
                 </span>
               )}
               {m.brief && (
                 <Link
                   href={`/admin/briefs/${m.brief.id}`}
-                  className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-800 underline-offset-2 hover:underline"
+                  className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
                 >
                   Brief: {m.brief.title}
                 </Link>
@@ -466,17 +458,17 @@ function EmptyMeetings({
   kind: "upcoming" | "past";
 }) {
   return (
-    <Card className="bg-white border-slate-200 border-dashed shadow-none">
+    <Card className="bg-card border-border border-dashed shadow-none">
       <CardContent className="p-10 text-center space-y-3">
-        <div className="mx-auto h-12 w-12 rounded-2xl bg-slate-100 grid place-items-center">
-          <CalendarPlus className="h-5 w-5 text-slate-500" />
+        <div className="mx-auto h-12 w-12 rounded-2xl bg-secondary grid place-items-center">
+          <CalendarPlus className="h-5 w-5 text-muted-foreground" />
         </div>
-        <div className="text-sm font-semibold text-slate-900">
+        <div className="text-sm font-semibold text-foreground">
           {kind === "upcoming"
             ? "No meetings scheduled yet"
             : "Nothing in history"}
         </div>
-        <p className="text-[12.5px] text-slate-500 max-w-md mx-auto">
+        <p className="text-[12.5px] text-muted-foreground max-w-md mx-auto">
           {isConnected
             ? "Use the New meeting button to create an instant or scheduled sync."
             : "Connect Google Calendar above to start scheduling meetings."}
@@ -508,8 +500,8 @@ function FlashBanner({
     tone === "success"
       ? "border-emerald-200 bg-emerald-50 text-emerald-900"
       : tone === "error"
-        ? "border-amber-200 bg-amber-50 text-amber-900"
-        : "border-slate-200 bg-slate-50 text-slate-700";
+        ? "border-red-200 bg-red-50 text-red-900"
+        : "border-border bg-secondary/50 text-foreground/80";
   return (
     <div className={cn("rounded-xl border px-4 py-3 flex items-start gap-3", cls)}>
       <div className="shrink-0 mt-0.5">{icon}</div>

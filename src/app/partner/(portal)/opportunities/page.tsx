@@ -17,7 +17,7 @@ export default async function PartnerOpportunitiesPage() {
   ).length;
 
   return (
-    <div className="page-container-wide portal-page py-7 sm:py-9 lg:py-10">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
       <PartnerPageHeader
         eyebrow="Opportunities"
         title="New customer matches"
@@ -51,14 +51,14 @@ export default async function PartnerOpportunitiesPage() {
         />
       </section>
 
-      <Card className="border-blue-100 bg-blue-50/60 shadow-none">
+      <Card className="border-primary/20 bg-primary/5 shadow-none">
         <CardContent className="flex items-start gap-3 p-4 sm:p-5">
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-blue-100 bg-white text-blue-700">
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-primary/20 bg-card text-primary">
             <ShieldCheck className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-[13px] font-semibold text-blue-950">Customer identity stays protected</h2>
-            <p className="mt-0.5 max-w-3xl text-[12px] leading-relaxed text-blue-800">
+            <h2 className="text-[13px] font-semibold text-foreground">Customer identity stays protected</h2>
+            <p className="mt-0.5 max-w-3xl text-[12px] leading-relaxed text-muted-foreground">
               Opportunity details are anonymized until the customer completes selection and the reveal gate opens.
             </p>
           </div>

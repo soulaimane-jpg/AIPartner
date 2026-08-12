@@ -82,12 +82,12 @@ export default async function AdminTagsPage() {
   const misfiled = tags.filter((t) => t.suggestedFacet);
 
   return (
-    <div className="page-container-wide portal-page py-7 sm:py-9">
-      <header className="space-y-2">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header block">
         <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-primary">
           Tag library
         </span>
-        <h1 className="text-[24px] font-semibold tracking-tight text-foreground">
+        <h1 className="portal-page-title">
           Curate the partner vocabulary
         </h1>
         <p className="max-w-3xl text-[13px] leading-relaxed text-muted-foreground">

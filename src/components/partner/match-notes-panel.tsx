@@ -112,7 +112,7 @@ export function MatchNotesPanel({
     >
       <header className="flex items-center justify-between px-4 py-3 border-b border-line">
         <div className="flex items-center gap-2">
-          <div className="grid h-7 w-7 place-items-center rounded-md bg-amber-100 text-amber-700">
+          <div className="grid h-7 w-7 place-items-center rounded-md bg-primary/10 text-primary">
             <StickyNote className="h-3.5 w-3.5" />
           </div>
           <div>

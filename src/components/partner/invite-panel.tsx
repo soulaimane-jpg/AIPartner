@@ -94,7 +94,7 @@ export function InvitePanel({
   if (status === "INVITED" || status === "SOURCED") {
     const isSourced = status === "SOURCED";
     return (
-      <div className="rounded-lg border border-border bg-background p-5 space-y-4">
+      <div className="space-y-4 rounded-xl border border-line bg-card p-5 shadow-elev-1">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-amber-600" />
           <span className="text-[14px] font-semibold text-foreground">
@@ -176,7 +176,7 @@ export function InvitePanel({
 
   if (status === "PARTNER_ACCEPTED" || status === "EXTENSION_REQUESTED") {
     return (
-      <div className="rounded-lg border border-border bg-background p-5 space-y-4">
+      <div className="space-y-4 rounded-xl border border-line bg-card p-5 shadow-elev-1">
         <div className="flex items-center gap-2">
           <Hourglass className="h-4 w-4 text-foreground" />
           <span className="text-[14px] font-semibold text-foreground">

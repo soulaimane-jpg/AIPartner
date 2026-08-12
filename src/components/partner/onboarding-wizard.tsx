@@ -338,7 +338,7 @@ function StepRail({
  */
 function ProvenanceChip({ source }: { source: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-[10.5px] font-medium text-blue-700">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[10.5px] font-medium text-primary">
       <Sparkles className="h-3 w-3" />
       {source === "directory"
         ? "From your Google Cloud listing — please check"

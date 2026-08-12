@@ -159,7 +159,7 @@
     --topbar-h:            56px;
   }
 
-  .portal-root[data-portal-appearance="customer"] {
+  .portal-root[data-portal-appearance="platform"] {
     --bg:           214 50% 98%;
     --surface-0:    var(--bg);
     --surface-1:    0 0% 100%;
@@ -720,17 +720,17 @@
     transition: margin-left var(--dur-3) var(--ease-out-quart);
   }
 
-  .portal-root[data-portal-appearance="customer"] .portal-content {
+  .portal-root[data-portal-appearance="platform"] .portal-content {
     background:
       radial-gradient(circle at 94% 2%, hsl(var(--brand-1) / 0.055), transparent 25rem),
       hsl(var(--background));
   }
 
-  .portal-root[data-portal-appearance="customer"] .portal-page-header {
+  .portal-root[data-portal-appearance="platform"] .portal-page-header {
     border-color: hsl(var(--line) / 0.85);
   }
 
-  .portal-root[data-portal-appearance="customer"] .portal-icon-box {
+  .portal-root[data-portal-appearance="platform"] .portal-icon-box {
     border-color: hsl(var(--primary) / 0.18);
     background: linear-gradient(145deg, hsl(var(--primary)), hsl(var(--brand-2)));
     color: hsl(var(--primary-foreground));

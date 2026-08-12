@@ -237,7 +237,7 @@ export function ImportStep({
       <Card className="border-line bg-card shadow-elev-1">
         <CardContent className="space-y-5 p-5 sm:p-7">
           <div className="flex items-start gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-blue-100 bg-blue-50 text-blue-700">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
               <Globe className="h-[18px] w-[18px]" />
             </div>
             <div>
@@ -263,7 +263,7 @@ export function ImportStep({
                   if (e.key === "Enter" && !busy) void run();
                 }}
                 placeholder="https://cloud.google.com/find-a-partner/partner/… or https://yourcompany.com"
-                className="h-11 rounded-xl bg-white text-[13px]"
+                className="h-11 rounded-xl bg-card text-[13px]"
               />
               <Button
                 onClick={run}

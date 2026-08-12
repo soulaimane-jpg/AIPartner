@@ -61,7 +61,7 @@ export function QaAskForm({ briefId }: { briefId: string }) {
         maxLength={MAX}
         rows={3}
         placeholder="What would you like to clarify with the customer? Your identity stays anonymous."
-        className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-y"
+        className="w-full resize-y rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground"
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <label className="text-[11.5px] text-muted-foreground flex items-center gap-1.5">
@@ -82,7 +82,7 @@ export function QaAskForm({ briefId }: { briefId: string }) {
           <button
             type="submit"
             disabled={pending}
-            className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             <MessageCirclePlus className="h-3 w-3" />
             {pending ? "Posting…" : "Ask anonymously"}

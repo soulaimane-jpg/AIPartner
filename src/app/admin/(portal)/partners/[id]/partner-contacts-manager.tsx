@@ -51,7 +51,7 @@ export function PartnerContactsManager({
   };
 
   return (
-    <section className="rounded-lg border border-border bg-background p-5 space-y-4">
+    <section className="customer-panel space-y-4 p-5">
       <header className="flex items-center justify-between">
         <div>
           <h2 className="text-[14px] font-semibold text-foreground">
@@ -72,7 +72,7 @@ export function PartnerContactsManager({
       </header>
 
       {contacts.length === 0 && !adding && (
-        <p className="text-[13px] text-muted-foreground italic">
+        <p className="text-[13px] text-muted-foreground">
           No contacts yet — invites fall back to the partner&apos;s portal
           users.
         </p>

@@ -249,7 +249,7 @@ function IpAssetRepeater({
                 disabled={disabled}
                 onChange={(e) => patch(i, { name: e.target.value })}
                 placeholder="Terraform Landing Zone Kit"
-                className="h-11 rounded-xl bg-white text-[13px]"
+                className="h-11 rounded-xl bg-card text-[13px]"
               />
             </div>
             <div className="space-y-1.5">
@@ -261,7 +261,7 @@ function IpAssetRepeater({
                 disabled={disabled}
                 onChange={(e) => patch(i, { timeSaved: e.target.value })}
                 placeholder="3 weeks → 2 days"
-                className="h-11 rounded-xl bg-white text-[13px]"
+                className="h-11 rounded-xl bg-card text-[13px]"
               />
             </div>
           </div>
@@ -289,7 +289,7 @@ function IpAssetRepeater({
                 value={asset.access}
                 disabled={disabled}
                 onChange={(e) => patch(i, { access: e.target.value })}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-900"
+                className="h-11 w-full rounded-xl border border-line bg-card px-3 text-[13px] text-foreground"
               >
                 <option value="">Not specified</option>
                 {ASSET_ACCESS_OPTIONS.map((o) => (
@@ -307,7 +307,7 @@ function IpAssetRepeater({
                 value={asset.impact}
                 disabled={disabled}
                 onChange={(e) => patch(i, { impact: e.target.value })}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-900"
+                className="h-11 w-full rounded-xl border border-line bg-card px-3 text-[13px] text-foreground"
               >
                 <option value="">Not specified</option>
                 {ASSET_IMPACT_OPTIONS.map((o) => (
@@ -370,7 +370,7 @@ function CaseStudyRepeater({
                 value={cs.title}
                 disabled={disabled}
                 onChange={(e) => patch(i, { title: e.target.value })}
-                className="h-11 rounded-xl bg-white text-[13px]"
+                className="h-11 rounded-xl bg-card text-[13px]"
               />
             </div>
             <div className="space-y-1.5">
@@ -382,7 +382,7 @@ function CaseStudyRepeater({
                 disabled={disabled}
                 onChange={(e) => patch(i, { client: e.target.value })}
                 placeholder="Leave blank if confidential"
-                className="h-11 rounded-xl bg-white text-[13px]"
+                className="h-11 rounded-xl bg-card text-[13px]"
               />
             </div>
             <div className="space-y-1.5">
@@ -393,7 +393,7 @@ function CaseStudyRepeater({
                 value={cs.industry}
                 disabled={disabled}
                 onChange={(e) => patch(i, { industry: e.target.value })}
-                className="h-11 rounded-xl bg-white text-[13px]"
+                className="h-11 rounded-xl bg-card text-[13px]"
               />
             </div>
             <div className="space-y-1.5">
@@ -407,7 +407,7 @@ function CaseStudyRepeater({
                 value={cs.engagementDate}
                 disabled={disabled}
                 onChange={(e) => patch(i, { engagementDate: e.target.value })}
-                className="h-11 rounded-xl bg-white font-mono text-[13px]"
+                className="h-11 rounded-xl bg-card font-mono text-[13px]"
               />
             </div>
           </div>
@@ -435,7 +435,7 @@ function CaseStudyRepeater({
                 onChange={(e) =>
                   patch(i, { referenceAvailable: e.target.checked })
                 }
-                className="h-3.5 w-3.5 rounded border-slate-300 accent-primary"
+                className="h-3.5 w-3.5 rounded border-border accent-primary"
               />
               Reference call possible
             </label>
@@ -445,7 +445,7 @@ function CaseStudyRepeater({
                 checked={cs.confidential}
                 disabled={disabled}
                 onChange={(e) => patch(i, { confidential: e.target.checked })}
-                className="h-3.5 w-3.5 rounded border-slate-300 accent-primary"
+                className="h-3.5 w-3.5 rounded border-border accent-primary"
               />
               Client name confidential
             </label>

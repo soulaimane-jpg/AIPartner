@@ -101,7 +101,7 @@ export default async function PartnerProfilePage() {
   };
 
   return (
-    <div className="page-container-wide portal-page py-7 sm:py-9 lg:py-10">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
       <PartnerPageHeader
         eyebrow="Company profile"
         title="Present your strongest capabilities"

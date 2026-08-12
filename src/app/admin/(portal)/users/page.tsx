@@ -22,32 +22,32 @@ export default async function AdminUsersPage() {
   );
 
   return (
-    <div className="space-y-8 pb-20">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900 uppercase italic">Operator <span className="text-blue-600">Database</span></h1>
-        <p className="text-slate-500 font-mono text-xs ">
-          Access Control & Platform Personnel Management
-        </p>
-      </div>
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header">
+        <div>
+          <div className="eyebrow text-primary">Access Control & Platform Personnel Management</div>
+          <h1 className="portal-page-title">Operator Database</h1>
+        </div>
+      </header>
 
-      <Card className="bg-white border-slate-200 shadow-sm">
-        <CardHeader className="border-b border-slate-200 bg-white px-8 py-6">
-          <CardTitle className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+      <Card className="customer-table bg-card shadow-elev-1">
+        <CardHeader className="customer-panel-header">
+          <CardTitle className="text-sm font-bold text-foreground uppercase tracking-wider">
             Active Accounts: {users.length} Identities Verified
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-white/5">
+          <div className="divide-y divide-line">
             {users.map((u) => (
               <div
                 key={u.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between p-8 hover:bg-slate-50 transition-all group gap-6"
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-5 hover:bg-primary/5 transition-all group gap-6"
               >
                 <div className="space-y-2">
-                  <div className="font-bold text-xl text-slate-900 group-hover:text-blue-600 transition-colors">{u.name ?? "UNKNOWN_OPERATOR"}</div>
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-mono text-slate-500 uppercase tracking-wider">
-                    <span className="text-blue-600 font-bold">{u.email}</span>
-                    <span className="text-slate-600">{u.companyName ?? "NO_ORG"}</span>
+                  <div className="text-base font-semibold text-foreground group-hover:text-primary transition-colors">{u.name ?? "UNKNOWN_OPERATOR"}</div>
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground uppercase tracking-wider">
+                    <span className="text-primary font-bold">{u.email}</span>
+                    <span className="text-foreground/70">{u.companyName ?? "NO_ORG"}</span>
                     <span>Verified {timeAgo(u.createdAt)}</span>
                   </div>
                 </div>
@@ -57,15 +57,15 @@ export default async function AdminUsersPage() {
                     className={cn(
                       "text-xs font-semibold  py-1 px-4",
                       u.role === "ADMIN" 
-                        ? "border-red-500/30 text-red-600 bg-red-500/5 shadow-[0_0_10px_rgba(239,68,68,0.2)]" 
+                        ? "border-red-200 bg-red-50 text-red-700"
                         : u.role === "PARTNER"
-                          ? "border-blue-200 text-blue-600 bg-blue-50"
-                          : "border-slate-200 text-slate-500 bg-white"
+                          ? "border-primary/20 bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground bg-card"
                     )}
                   >
                     {u.role}
                   </Badge>
-                  <div className="text-xs font-mono text-slate-700">
+                  <div className="text-xs text-foreground/80">
                     UID: {u.id.substring(0, 8)}
                   </div>
                 </div>

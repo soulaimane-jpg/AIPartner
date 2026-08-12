@@ -214,17 +214,17 @@ export default async function AdminBriefDetailPage({
   }));
 
   return (
-    <div className="space-y-8 pb-20">
-      <div className="flex items-start gap-5">
-        <Button asChild variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-white/10 transition-all">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header">
+        <Button asChild variant="outline" size="icon" className="h-10 w-10 shrink-0 rounded-xl">
           <Link href="/admin/briefs">
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 uppercase italic">{brief.title}</h1>
-          <div className="mt-1 flex items-center gap-3 text-xs font-mono text-slate-500 ">
-            <span className="text-blue-600 font-bold">{brief.companyName}</span>
+        <div className="min-w-0 flex-1">
+          <h1 className="portal-page-title">{brief.title}</h1>
+          <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="text-primary font-bold">{brief.companyName}</span>
             <span>•</span>
             <span>{brief.ownerEmail}</span>
             <span>•</span>
@@ -249,11 +249,11 @@ export default async function AdminBriefDetailPage({
             size="sm"
           />
         </div>
-      </div>
+      </header>
 
-      <Card className="bg-white border-slate-200 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent"></div>
-        <CardContent className="p-8">
+      <Card className="customer-panel relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/60 to-transparent"></div>
+        <CardContent className="p-5">
           <Pipeline stage={brief.stage as BriefStage} />
         </CardContent>
       </Card>
@@ -307,57 +307,57 @@ export default async function AdminBriefDetailPage({
         comparisonStatus={brief.comparisonStatus ?? null}
       />
 
-      <div className="grid gap-8 lg:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
           <AnonymizedCustomerProfileCard anon={anonProfile} />
 
-          <Card className="bg-white border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-200 bg-white p-8">
-              <CardTitle className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-3">
-                <FileText className="h-5 w-5 text-blue-600" /> Operational Context
+          <Card className="customer-panel bg-card">
+            <CardHeader className="customer-panel-header p-5">
+              <CardTitle className="text-lg font-bold text-foreground tracking-tight flex items-center gap-3">
+                <FileText className="h-5 w-5 text-primary" /> Operational Context
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-8 space-y-10">
-              <div className="grid grid-cols-2 gap-8">
+            <CardContent className="p-5 space-y-10">
+              <div className="grid grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <div className="text-xs font-semibold  text-slate-600">Current Phase</div>
-                  <Badge variant="outline" className="border-blue-200 text-blue-600 bg-blue-50 px-4 py-1 rounded-lg">
+                  <div className="text-xs font-semibold  text-foreground/70">Current Phase</div>
+                  <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary px-4 py-1 rounded-lg">
                     {STAGE_LABELS[brief.stage]}
                   </Badge>
                 </div>
                 <div className="space-y-2 text-right">
-                  <div className="text-xs font-semibold  text-slate-600">Sync Status</div>
+                  <div className="text-xs font-semibold  text-foreground/70">Sync Status</div>
                   <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/5 px-4 py-1 rounded-lg">
                     ACTIVE
                   </Badge>
                 </div>
               </div>
 
-              <div className="h-[1px] bg-white"></div>
+              <div className="h-[1px] bg-card"></div>
 
               <div className="space-y-4">
-                <h3 className="text-xs font-semibold  text-slate-600">Mission Summary</h3>
-                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-8 text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
+                <h3 className="text-xs font-semibold  text-foreground/70">Mission Summary</h3>
+                <div className="rounded-2xl bg-secondary/40 border border-border p-5 text-foreground/70 text-sm leading-relaxed whitespace-pre-wrap">
                   {brief.executiveSummary ?? (
-                    <span className="italic text-slate-600">System pending input from discovery session.</span>
+                    <span className="text-foreground/70">System pending input from discovery session.</span>
                   )}
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-xs font-semibold  text-slate-600">Technical Scope</h3>
+                <h3 className="text-xs font-semibold  text-foreground/70">Technical Scope</h3>
                 {scope.length === 0 ? (
-                  <div className="py-12 text-center border border-dashed border-slate-200 rounded-2xl text-xs font-mono text-slate-700 ">
+                  <div className="py-12 text-center border border-dashed border-border rounded-2xl text-xs text-foreground/80 ">
                     [ NO SCOPE NODES DEFINED ]
                   </div>
                 ) : (
                   <div className="grid gap-3">
                     {scope.map((s, i) => (
-                      <div key={i} className="flex items-start gap-4 p-5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-100 transition-all group">
-                        <div className="text-xs font-mono text-blue-600 font-bold mt-1">0{i+1}</div>
+                      <div key={i} className="flex items-start gap-4 p-5 rounded-2xl border border-border bg-card hover:bg-primary/5 transition-all group">
+                        <div className="text-xs text-primary font-bold mt-1">0{i+1}</div>
                         <div className="space-y-1">
-                          <div className="text-sm font-bold text-slate-900">{s.title}</div>
-                          <div className="text-xs text-slate-500 leading-normal">{s.detail}</div>
+                          <div className="text-sm font-bold text-foreground">{s.title}</div>
+                          <div className="text-xs text-muted-foreground leading-normal">{s.detail}</div>
                         </div>
                       </div>
                     ))}
@@ -369,21 +369,21 @@ export default async function AdminBriefDetailPage({
         </div>
 
         <div className="space-y-8">
-          <Card className="bg-white border-slate-200 shadow-sm overflow-hidden relative">
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent opacity-50"></div>
-            <CardHeader className="border-b border-slate-200 bg-white p-6">
-              <CardTitle className="text-sm font-bold text-slate-900 ">Protocol Controls</CardTitle>
+          <Card className="customer-panel bg-card overflow-hidden relative">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-50"></div>
+            <CardHeader className="customer-panel-header p-6">
+              <CardTitle className="text-sm font-bold text-foreground ">Protocol Controls</CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <AdminStageControls id={brief.id} stage={brief.stage as BriefStage} />
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-200 bg-white p-6">
-              <CardTitle className="text-sm font-bold text-slate-900  flex items-center justify-between w-full">
+          <Card className="customer-panel bg-card">
+            <CardHeader className="customer-panel-header p-6">
+              <CardTitle className="text-sm font-bold text-foreground  flex items-center justify-between w-full">
                 <span>Aligned Partners</span>
-                <Badge variant="outline" className="h-5 px-2 border-slate-200 text-slate-500">{matches.length}</Badge>
+                <Badge variant="outline" className="h-5 px-2 border-border text-muted-foreground">{matches.length}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
@@ -391,19 +391,19 @@ export default async function AdminBriefDetailPage({
                 {matches.map((m) => (
                   <div
                     key={m.id}
-                    className="p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-all group"
+                    className="p-4 rounded-xl border border-border bg-secondary/40 hover:bg-primary/5 transition-all group"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{m.partnerName}</div>
-                      <Badge variant="outline" className="text-[8px] font-semibold uppercase border-slate-200 text-slate-500 px-1.5 py-0">
+                      <div className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{m.partnerName}</div>
+                      <Badge variant="outline" className="text-[8px] font-semibold uppercase border-border text-muted-foreground px-1.5 py-0">
                         {m.status}
                       </Badge>
                     </div>
-                    <div className="text-xs font-mono text-slate-600  flex items-center justify-between">
+                    <div className="text-xs text-foreground/70  flex items-center justify-between">
                       <span>SOW_STATE:</span>
                       <span className={cn(
                         "font-bold",
-                        m.proposalStatus ? "text-blue-600" : "text-slate-800"
+                        m.proposalStatus ? "text-primary" : "text-foreground"
                       )}>
                         {m.proposalStatus ? m.proposalStatus : "NULL"}
                       </span>
@@ -411,14 +411,14 @@ export default async function AdminBriefDetailPage({
                   </div>
                 ))}
                 {matches.length === 0 && (
-                  <div className="py-10 text-center border border-dashed border-slate-200 rounded-2xl text-xs font-mono text-slate-700 ">
+                  <div className="py-10 text-center border border-dashed border-border rounded-2xl text-xs text-foreground/80 ">
                     [ NO NODES ALIGNED ]
                   </div>
                 )}
               </div>
               
-              <div className="pt-4 border-t border-slate-200">
-                <div className="text-xs font-semibold text-slate-600 mb-4 ml-1">
+              <div className="pt-4 border-t border-border">
+                <div className="text-xs font-semibold text-foreground/70 mb-4 ml-1">
                   Ranked partner matches
                 </div>
                 <AdminPartnerMatchList briefId={brief.id} partners={scoredPartners} />

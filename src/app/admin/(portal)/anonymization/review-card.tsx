@@ -62,7 +62,7 @@ export function AnonymizationReviewCard({
   const sectionKeys = Object.keys(edited).filter(isProposalSectionKey);
 
   return (
-    <section className="rounded-lg border border-border bg-background overflow-hidden">
+    <section className="customer-panel overflow-hidden">
       <header className="px-5 py-3 border-b border-border flex items-center gap-2 flex-wrap">
         <h2 className="text-[14px] font-semibold text-foreground">
           {briefTitle}

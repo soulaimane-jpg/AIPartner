@@ -43,36 +43,35 @@ export default async function GooglerOverviewPage() {
   const recent = leads.slice(0, 6);
 
   return (
-    <GoogleShell className="space-y-8 pb-20">
+    <GoogleShell className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
       {/* Hero header — navy gradient banner with aurora + noise */}
       <GoogleSection>
-        <div className="relative isolate overflow-hidden rounded-3xl bg-hero-purple text-white p-8 lg:p-10">
-          <div aria-hidden className="bg-aurora" />
-          <div aria-hidden className="bg-noise" />
-          <div className="relative flex flex-wrap items-start justify-between gap-4">
+        <header className="portal-page-header">
+          <div className="flex items-start gap-3">
+            <span className="portal-icon-box" aria-hidden>
+              <Sparkles className="h-[18px] w-[18px]" />
+            </span>
             <div>
-              <div className="text-[10.5px] uppercase tracking-[0.16em] font-semibold text-magenta-1 flex items-center gap-2">
-                <Sparkles className="h-3.5 w-3.5" /> Google Sales Portal
-              </div>
-              <h1 className="text-[28px] sm:text-[32px] leading-[1.1] font-semibold tracking-[-0.018em] text-white mt-2">
+              <div className="eyebrow text-primary">Google Sales Portal</div>
+              <h1 className="portal-page-title">
                 Welcome back, {session.user.name?.split(" ")[0] ?? "there"}.
               </h1>
-              <p className="text-[14px] text-white/75 mt-2 max-w-xl">
+              <p className="portal-page-description">
                 Refer customers into AI Partner and track their journey to a
                 signed Google Cloud partner engagement.
               </p>
             </div>
-            <Button asChild className="h-11 px-5" variant="pill-magenta" size="md">
-              <Link href="/google/leads/new">
-                <UserPlus className="h-4 w-4 mr-2" /> Refer a customer
-              </Link>
-            </Button>
           </div>
-        </div>
+          <Button asChild className="w-full sm:w-auto" size="default">
+            <Link href="/google/leads/new">
+              <UserPlus className="h-4 w-4" /> Refer a customer
+            </Link>
+          </Button>
+        </header>
       </GoogleSection>
 
       {/* KPIs */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="customer-kpi-grid">
         <GoogleKpi
           icon={<Send className="h-4 w-4" />}
           label="Leads referred"
@@ -101,8 +100,8 @@ export default async function GooglerOverviewPage() {
 
       {/* Recent leads */}
       <GoogleSection>
-        <div className="rounded-2xl border border-border bg-white overflow-hidden shadow-elev-1">
-          <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+        <div className="customer-table">
+          <div className="customer-panel-header">
             <div>
               <div className="text-sm font-semibold text-foreground">
                 Recent leads
@@ -114,7 +113,7 @@ export default async function GooglerOverviewPage() {
             {leads.length > 0 && (
               <Link
                 href="/google/leads"
-                className="text-xs font-semibold text-magenta-1 hover:underline flex items-center gap-1"
+                className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
               >
                 View all <ArrowRight className="h-3 w-3" />
               </Link>
@@ -124,12 +123,12 @@ export default async function GooglerOverviewPage() {
           {leads.length === 0 ? (
             <EmptyState />
           ) : (
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-line">
               {recent.map((l) => (
                 <Link
                   key={l.id}
                   href={`/google/leads/${l.id}`}
-                  className="flex flex-wrap items-center gap-4 px-6 py-4 hover:bg-secondary/40 transition-colors"
+                  className="flex flex-wrap items-center gap-4 px-5 py-3.5 transition-colors hover:bg-primary/5 sm:px-6"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-foreground truncate">
@@ -157,7 +156,7 @@ export default async function GooglerOverviewPage() {
 function EmptyState() {
   return (
     <div className="px-6 py-14 text-center">
-      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-magenta-1/12 text-magenta-1">
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-border bg-secondary text-primary">
         <UserPlus className="h-5 w-5" />
       </div>
       <div className="mt-3 text-sm font-semibold text-foreground">
@@ -167,7 +166,7 @@ function EmptyState() {
         Submit your first lead — it takes about 30 seconds. They&apos;ll get an
         invite email and you&apos;ll see their progress here.
       </p>
-      <Button asChild className="mt-4 h-10 px-5" variant="pill-magenta">
+      <Button asChild className="mt-4">
         <Link href="/google/leads/new">
           <UserPlus className="h-4 w-4 mr-2" /> Refer a customer
         </Link>

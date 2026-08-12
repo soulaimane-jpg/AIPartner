@@ -61,7 +61,7 @@ export function DealReportForm({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-background p-5 space-y-3">
+    <div className="space-y-3 rounded-xl border border-line bg-card p-5 shadow-elev-1">
       <h3 className="text-[14px] font-semibold text-foreground flex items-center gap-2">
         <Handshake className="h-4 w-4" /> Report engagement status
       </h3>
@@ -77,7 +77,7 @@ export function DealReportForm({
             onClick={() => setOutcome(o.value)}
             className={`rounded-md border px-3 py-1.5 text-[12.5px] transition-colors ${
               outcome === o.value
-                ? "border-foreground bg-foreground text-background"
+                ? "border-primary bg-primary text-primary-foreground"
                 : "border-border bg-background text-foreground hover:bg-secondary/60"
             }`}
           >

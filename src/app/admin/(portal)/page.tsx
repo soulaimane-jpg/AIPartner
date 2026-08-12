@@ -19,12 +19,12 @@ import { CronHealthPanel } from "@/components/admin/cron-health-panel";
 export const dynamic = "force-dynamic";
 
 const STAGE_BAR_COLORS = [
-  "bg-primary shadow-[0_0_6px_0_hsl(197_100%_52%/0.55)]",
-  "bg-blue-500 shadow-[0_0_6px_0_hsl(215_100%_60%/0.5)]",
-  "bg-violet-500 shadow-[0_0_6px_0_hsl(270_80%_65%/0.45)]",
-  "bg-amber-500 shadow-[0_0_6px_0_hsl(38_95%_55%/0.45)]",
-  "bg-emerald-500 shadow-[0_0_6px_0_hsl(168_84%_42%/0.45)]",
-  "bg-rose-500 shadow-[0_0_6px_0_hsl(350_90%_60%/0.4)]",
+  "bg-primary",
+  "bg-primary/90",
+  "bg-primary/80",
+  "bg-primary/70",
+  "bg-primary/60",
+  "bg-primary/50",
 ];
 
 export default async function AdminOverviewPage() {
@@ -68,15 +68,15 @@ export default async function AdminOverviewPage() {
       icon: FileText,
       color: "text-primary",
       bg: "bg-primary/10 border-primary/20",
-      glow: "hover:shadow-[0_8px_32px_-8px_hsl(var(--primary)/0.25)]",
+      glow: "hover:border-primary/30 hover:shadow-elev-2",
     },
     {
       label: "Active Pipelines",
       value: activeBriefs,
       icon: Activity,
-      color: "text-indigo-600",
-      bg: "bg-indigo-50 border-indigo-100",
-      glow: "hover:shadow-[0_8px_32px_-8px_rgba(79,70,229,0.15)]",
+      color: "text-primary",
+      bg: "bg-primary/10 border-primary/20",
+      glow: "hover:border-primary/30 hover:shadow-elev-2",
     },
     {
       label: "Verified Partners",
@@ -84,31 +84,31 @@ export default async function AdminOverviewPage() {
       icon: ShieldCheck,
       color: "text-success",
       bg: "bg-success/10 border-success/20",
-      glow: "hover:shadow-[0_8px_32px_-8px_hsl(var(--success)/0.25)]",
+      glow: "hover:border-success/30 hover:shadow-elev-2",
     },
     {
       label: "Total Users",
       value: userCount,
       icon: Users,
-      color: "text-violet-600",
-      bg: "bg-violet-50 border-violet-100",
-      glow: "hover:shadow-[0_8px_32px_-8px_rgba(139,92,246,0.15)]",
+      color: "text-primary",
+      bg: "bg-primary/10 border-primary/20",
+      glow: "hover:border-primary/30 hover:shadow-elev-2",
     },
   ];
 
   return (
-    <div className="space-y-10 pb-16">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
       {/* Header */}
-      <header
-        className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-700"
-      >
-        <div className="inline-flex items-center gap-2 rounded-full bg-secondary border border-border px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          <Building2 className="h-3 w-3" />
-          System Administration
+      <header className="portal-page-header">
+        <div className="flex items-start gap-3">
+          <span className="portal-icon-box bg-primary/10 text-primary ring-1 ring-primary/15" aria-hidden>
+            <Building2 className="h-[18px] w-[18px]" />
+          </span>
+          <div>
+            <div className="eyebrow text-primary">System Administration</div>
+            <h1 className="portal-page-title">Control Center</h1>
+          </div>
         </div>
-        <h1 className="font-display text-4xl font-bold tracking-tight text-foreground lg:text-5xl">
-          Control Center
-        </h1>
       </header>
 
       {/* Scheduler health — everything time-based fails silently
@@ -120,21 +120,21 @@ export default async function AdminOverviewPage() {
         {kpis.map((k, i) => (
           <Card
             key={k.label}
-            className={cn("modern-card group animate-card-rise transition-all duration-300", k.glow)}
+            className={cn("customer-panel group transition-colors", k.glow)}
             style={{ animationDelay: `${i * 80}ms` }}
           >
-            <div className={cn("absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-current/50 via-current/20 to-transparent opacity-60", k.color)} />
-            <CardContent className="p-6 pt-6 sm:p-6 space-y-3.5">
+            <div className={cn("absolute inset-x-0 top-0 h-0.5 bg-primary/70", k.color)} />
+            <CardContent className="space-y-3 p-5">
               <div className={cn(
-                "grid h-11 w-11 place-items-center rounded-xl border transition-transform group-hover:scale-110",
+                "portal-icon-box border",
                 k.bg,
                 k.color,
               )}>
                 <k.icon className="h-5 w-5" />
               </div>
               <div>
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{k.label}</div>
-                <div className={cn("font-display text-3xl font-bold mt-1.5", k.color)}>{k.value}</div>
+                <div className="text-[12px] font-medium text-muted-foreground">{k.label}</div>
+                <div className="mt-1 text-2xl font-semibold text-foreground">{k.value}</div>
               </div>
             </CardContent>
           </Card>
@@ -145,13 +145,13 @@ export default async function AdminOverviewPage() {
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Activity feed */}
         <Card
-          className="modern-card lg:col-span-8 animate-card-rise"
+          className="customer-panel overflow-hidden lg:col-span-8"
           style={{ animationDelay: "320ms" }}
         >
-          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary/50 via-primary/20 to-transparent" />
-          <CardHeader className="p-7 border-b border-border/50 flex flex-row items-center justify-between bg-secondary/20">
+          <div className="absolute inset-x-0 top-0 h-0.5 bg-primary/70" />
+          <CardHeader className="customer-panel-header flex flex-row items-center justify-between">
             <div className="space-y-0.5">
-              <CardTitle className="font-display text-lg font-bold text-foreground">Recent Activity</CardTitle>
+              <CardTitle className="text-base font-semibold text-foreground">Recent Activity</CardTitle>
               <p className="text-xs text-muted-foreground font-medium">Latest brief activity across the platform.</p>
             </div>
             <Button asChild variant="outline" size="sm" className="rounded-xl text-xs font-bold">
@@ -200,14 +200,14 @@ export default async function AdminOverviewPage() {
         <div className="lg:col-span-4 space-y-6">
           {/* Pipeline velocity */}
           <Card
-            className="modern-card animate-card-rise"
+            className="customer-panel overflow-hidden"
             style={{ animationDelay: "400ms" }}
           >
-            <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-violet-500/50 via-primary/30 to-transparent" />
-            <CardHeader className="p-7 border-b border-border/50 bg-secondary/20">
-              <CardTitle className="font-display text-base font-bold text-foreground">Pipeline Velocity</CardTitle>
+            <div className="absolute inset-x-0 top-0 h-0.5 bg-primary/70" />
+            <CardHeader className="customer-panel-header">
+              <CardTitle className="text-base font-semibold text-foreground">Pipeline Velocity</CardTitle>
             </CardHeader>
-            <CardContent className="p-7 space-y-5">
+            <CardContent className="space-y-4 p-5">
               {STAGE_ORDER.map((s, i) => {
                 const count = stageMap[s] ?? 0;
                 const percentage = briefCount > 0 ? (count / briefCount) * 100 : 0;
@@ -215,7 +215,7 @@ export default async function AdminOverviewPage() {
                 return (
                   <div key={s} className="group space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest group-hover:text-foreground transition-colors">
+                      <div className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                         {s}
                       </div>
                       <div className="text-xs font-bold text-foreground">{count}</div>
@@ -234,15 +234,15 @@ export default async function AdminOverviewPage() {
 
           {/* Growth card */}
           <Card
-            className="modern-card bg-primary/5 border-primary/20 animate-card-rise"
+            className="customer-panel border-primary/20 bg-primary/5"
             style={{ animationDelay: "480ms" }}
           >
             <CardContent className="p-7 space-y-5">
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/15 border border-primary/25 text-primary shadow-[0_0_16px_-4px_hsl(197_100%_52%/0.4)]">
+              <div className="portal-icon-box border border-primary/20 bg-primary/10 text-primary">
                 <TrendingUp className="h-5 w-5" />
               </div>
               <div className="space-y-1.5">
-                <div className="font-display text-lg font-bold text-foreground">Platform Growth</div>
+                <div className="text-base font-semibold text-foreground">Platform Growth</div>
                 <p className="text-xs text-muted-foreground font-medium leading-relaxed">
                   System matches are up 24% this week. Consider expanding Premier partner outreach.
                 </p>

@@ -1,7 +1,6 @@
 "use client";
 
 import { m } from "framer-motion";
-import { TiltCard } from "@/components/marketing/tilt-card";
 import { cn } from "@/lib/utils";
 
 /**
@@ -57,12 +56,12 @@ export function GoogleSection({
 
 const TONE_STYLES: Record<
   "muted" | "primary" | "success" | "warning",
-  { tile: string; glow: string }
+  string
 > = {
-  muted:   { tile: "bg-secondary text-muted-foreground",            glow: "hsl(var(--magenta-1) / 0.10)" },
-  primary: { tile: "bg-magenta-1/12 text-magenta-1",                glow: "hsl(var(--magenta-1) / 0.18)" },
-  success: { tile: "bg-emerald-500/12 text-emerald-600",            glow: "hsl(150 80% 45% / 0.16)" },
-  warning: { tile: "bg-amber-500/12 text-amber-600",                glow: "hsl(38 95% 55% / 0.18)" },
+  muted: "border-border bg-secondary text-muted-foreground",
+  primary: "border-primary/15 bg-primary/10 text-primary",
+  success: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  warning: "border-amber-200 bg-amber-50 text-amber-700",
 };
 
 export function GoogleKpi({
@@ -87,44 +86,26 @@ export function GoogleKpi({
 }) {
   const t = TONE_STYLES[tone];
   return (
-    <GoogleSection>
-      <TiltCard className="h-full" max={6}>
-        <div
-          className={cn(
-            "group/kpi relative h-full rounded-2xl border border-border bg-white p-5 overflow-hidden",
-            "[transform:rotateX(var(--rx))_rotateY(var(--ry))]",
-            "[transform-style:preserve-3d]",
-            "transition-[box-shadow,transform] duration-240 ease-out-quart",
-            "hover:shadow-elev-3",
-          )}
-        >
-          {/* Cursor-tracking glare */}
+    <GoogleSection className="h-full">
+      <div className="customer-panel flex h-full items-center justify-between gap-4 p-4 sm:p-5">
+        {/* Cursor-tracking glare */}
+        <div className="flex min-w-0 items-center gap-3">
           <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/kpi:opacity-100"
-            style={{
-              background: `radial-gradient(180px 180px at var(--mx) var(--my), ${t.glow}, transparent 70%)`,
-            }}
-          />
-          <div className="relative flex items-center justify-between">
-            <div
-              className={cn("grid h-9 w-9 place-items-center rounded-lg", t.tile)}
-              style={{ transform: "translateZ(22px)" }}
-            >
-              {icon}
-            </div>
-            <div
-              className="text-2xl font-bold tabular-nums text-foreground"
-              style={{ transform: "translateZ(14px)" }}
-            >
-              {value}
-            </div>
+            className={cn(
+              "grid h-9 w-9 shrink-0 place-items-center rounded-lg border",
+              t,
+            )}
+          >
+            {icon}
           </div>
-          <div className="relative mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {label}
           </div>
         </div>
-      </TiltCard>
+        <div className="text-2xl font-semibold tabular-nums text-foreground">
+          {value}
+        </div>
+      </div>
     </GoogleSection>
   );
 }

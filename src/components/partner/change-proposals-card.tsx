@@ -57,10 +57,10 @@ export function ChangeProposalsCard({
   };
 
   return (
-    <Card className="border-blue-200 bg-blue-50/50 shadow-none">
+    <Card className="border-primary/20 bg-primary/5 shadow-none">
       <CardContent className="space-y-4 p-5">
         <div className="flex items-start gap-3">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-blue-200 bg-white text-blue-700">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-primary/20 bg-card text-primary">
             <RefreshCw className="h-4 w-4" />
           </div>
           <div>
@@ -79,7 +79,7 @@ export function ChangeProposalsCard({
           {outstanding.map((p) => (
             <div
               key={p.id}
-              className="space-y-3 rounded-xl border border-blue-100 bg-white p-4"
+              className="space-y-3 rounded-xl border border-border bg-card p-4"
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[12px] font-semibold text-foreground">
@@ -95,15 +95,15 @@ export function ChangeProposalsCard({
                   <span className="text-[10.5px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
                     Current
                   </span>
-                  <p className="rounded-lg bg-surface-sunk px-3 py-2 leading-relaxed text-muted-foreground line-through decoration-slate-300">
+                  <p className="rounded-lg bg-surface-sunk px-3 py-2 leading-relaxed text-muted-foreground line-through decoration-border">
                     {p.currentValue || "— empty —"}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10.5px] font-medium uppercase tracking-[0.06em] text-blue-700">
+                  <span className="text-[10.5px] font-medium uppercase tracking-[0.06em] text-primary">
                     Suggested
                   </span>
-                  <p className="rounded-lg bg-blue-50 px-3 py-2 leading-relaxed text-foreground">
+                  <p className="rounded-lg bg-primary/5 px-3 py-2 leading-relaxed text-foreground">
                     {p.proposedValue || "— empty —"}
                   </p>
                 </div>

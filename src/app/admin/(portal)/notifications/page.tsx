@@ -31,9 +31,9 @@ export default async function AdminNotificationsPage() {
   });
 
   return (
-    <div className="space-y-6 pb-20">
-      <header>
-        <h1 className="text-xl font-semibold text-foreground">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header block">
+        <h1 className="portal-page-title">
           Notification templates
         </h1>
         <p className="mt-1 text-[13.5px] text-muted-foreground max-w-2xl">

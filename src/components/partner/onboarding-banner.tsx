@@ -22,10 +22,10 @@ export function OnboardingBanner({
   missingRequiredCount: number;
 }) {
   return (
-    <Card className="border-primary/25 bg-primary-soft/50 shadow-none">
+    <Card className="border-primary/25 bg-primary/5 shadow-none">
       <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-1 items-start gap-3">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-primary/20 bg-white text-primary">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-primary/20 bg-card text-primary">
             <Sparkles className="h-4 w-4" />
           </div>
           <div className="flex-1 space-y-2">

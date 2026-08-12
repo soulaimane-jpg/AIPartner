@@ -101,7 +101,7 @@ export function PortalShellClient({
     [router],
   );
 
-  const appearance = user.role === "CUSTOMER" ? "customer" : "default";
+  const appearance = "platform" as const;
 
   return (
     <div className="portal-root min-h-screen" data-portal-appearance={appearance}>

@@ -70,19 +70,19 @@ export function InviteControls({
   const showSend = leadState === "PARTNERS_SELECTED" && sourced.length > 0;
 
   return (
-    <div className="rounded-lg border border-border bg-background p-5 space-y-4">
+    <div className="customer-panel space-y-4 p-5">
       <header className="flex items-center gap-2">
         <Users className="h-4 w-4 text-muted-foreground" />
         <h2 className="text-[14px] font-semibold text-foreground">
           Invites &amp; timers
         </h2>
-        <Badge variant="outline" className="ml-auto font-mono text-[10px] uppercase tracking-wider">
+        <Badge variant="outline" className="ml-auto text-[10px] uppercase tracking-wider">
           {leadState}
         </Badge>
       </header>
 
       {matches.length === 0 ? (
-        <p className="text-[13px] text-muted-foreground italic">
+        <p className="text-[13px] text-muted-foreground">
           No partners sourced yet — use the sourcing wizard above.
         </p>
       ) : (
@@ -108,7 +108,7 @@ export function InviteControls({
                 >
                   {m.status}
                 </Badge>
-                <span className="ml-auto text-[11.5px] font-mono text-muted-foreground">
+                <span className="ml-auto text-[11.5px] text-muted-foreground">
                   {m.status === "INVITED" && m.acceptDeadlineAt
                     ? `T1 → ${new Date(m.acceptDeadlineAt).toLocaleString()}`
                     : (m.status === "PARTNER_ACCEPTED" ||

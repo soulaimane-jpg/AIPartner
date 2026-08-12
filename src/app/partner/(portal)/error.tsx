@@ -12,7 +12,7 @@ export default function PartnerPortalError({
   reset: () => void;
 }) {
   return (
-    <div className="page-container-wide py-10 sm:py-14">
+    <div className="page-container-wide portal-page py-10 sm:py-14">
       <Card className="mx-auto max-w-xl border-line bg-card shadow-elev-1">
         <CardContent className="flex flex-col items-center px-6 py-12 text-center sm:px-10">
           <div className="grid h-12 w-12 place-items-center rounded-xl border border-red-100 bg-red-50 text-red-700">

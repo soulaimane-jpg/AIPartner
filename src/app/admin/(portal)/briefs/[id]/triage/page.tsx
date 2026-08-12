@@ -104,8 +104,8 @@ export default async function AdminBriefTriagePage({
   });
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6 pb-20">
-      <div>
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header block">
         <Link
           href="/admin/briefs"
           className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground"
@@ -114,7 +114,7 @@ export default async function AdminBriefTriagePage({
           All briefs
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold text-foreground">
+          <h1 className="portal-page-title">
             Triage — {brief.title}
           </h1>
           <Badge variant="outline" className="font-mono text-[10.5px] uppercase tracking-wider">
@@ -127,12 +127,12 @@ export default async function AdminBriefTriagePage({
         <p className="mt-1 text-[13px] text-muted-foreground">
           {brief.companyName} · {brief.ownerName ?? brief.ownerEmail}
         </p>
-      </div>
+      </header>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         {/* ── Left: sections + decision + threads ── */}
         <div className="space-y-6 min-w-0">
-          <section className="rounded-lg border border-border bg-background overflow-hidden">
+          <section className="customer-panel overflow-hidden">
             <header className="px-5 py-3 border-b border-border flex items-center justify-between">
               <h2 className="text-[14px] font-semibold text-foreground">
                 Brief sections
@@ -199,7 +199,7 @@ export default async function AdminBriefTriagePage({
               Clarification threads
             </h2>
             {threads.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground italic">
+              <p className="text-[13px] text-muted-foreground">
                 No triage clarifications yet.
               </p>
             ) : (
@@ -217,7 +217,7 @@ export default async function AdminBriefTriagePage({
 
         {/* ── Right: company profile + onboarding answers ── */}
         <aside className="space-y-4">
-          <section className="rounded-lg border border-border bg-background p-4 space-y-3">
+          <section className="customer-panel space-y-3 p-4">
             <h2 className="text-[13px] font-semibold text-foreground">
               Company profile
             </h2>
@@ -275,7 +275,7 @@ export default async function AdminBriefTriagePage({
           </section>
 
           {brief.callTranscript && (
-            <section className="rounded-lg border border-border bg-background p-4">
+            <section className="customer-panel p-4">
               <h2 className="text-[13px] font-semibold text-foreground">
                 Call intake
               </h2>

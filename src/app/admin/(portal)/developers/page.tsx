@@ -113,10 +113,10 @@ export default async function AdminDevelopersPage({ searchParams }: PageProps) {
   ]);
 
   return (
-    <div className="space-y-10">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <KeyRound className="h-6 w-6 text-blue-600" />
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header block">
+        <h1 className="portal-page-title flex items-center gap-2">
+          <KeyRound className="h-6 w-6 text-primary" />
           Developers
         </h1>
         <p className="text-sm text-muted-foreground max-w-2xl">
@@ -150,7 +150,7 @@ export default async function AdminDevelopersPage({ searchParams }: PageProps) {
         </label>
         <button
           type="submit"
-          className="rounded-md bg-slate-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-slate-800"
+          className="rounded-md bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
         >
           Apply
         </button>

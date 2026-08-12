@@ -48,11 +48,11 @@ export function PartnerTabs({
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="rounded-lg px-5 h-full font-semibold text-sm transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground"
+                className="rounded-lg px-5 h-full font-semibold text-sm transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-elev-1 text-muted-foreground"
               >
                 {tab.label}
                 {tab.count > 0 && (
-                  <span className="ml-2 px-1.5 py-0.5 rounded-md bg-magenta-1/15 text-magenta-1 text-[10px] font-bold">
+                  <span className="ml-2 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold">
                     {tab.count}
                   </span>
                 )}
@@ -107,15 +107,15 @@ function MatchList({
         return (
           <Card
             key={m.id}
-            className="modern-card group animate-card-rise"
+            className="customer-panel group animate-card-rise overflow-hidden"
             style={{ animationDelay: `${i * 60}ms` }}
           >
-            <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-magenta-1/40 via-magenta-1/15 to-transparent" />
+            <div className="absolute inset-x-0 top-0 h-0.5 bg-primary" />
             <CardContent className="p-7">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0 flex-1 space-y-3">
                   <div className="flex flex-wrap items-center gap-2.5">
-                    <h3 className="font-display text-lg font-bold text-foreground group-hover:text-magenta-1 transition-colors">
+                    <h3 className="text-[17px] font-semibold tracking-[-0.01em] text-foreground transition-colors group-hover:text-primary">
                       {m.briefTitle}
                     </h3>
                     <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider">
@@ -138,18 +138,18 @@ function MatchList({
 
                   <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-muted-foreground font-medium">
                     <span className="flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-magenta-1/70" />
+                      <Clock className="h-3.5 w-3.5 text-primary" />
                       {timeAgo(new Date(m.updatedAt))}
                     </span>
                     {m.proposalTotalCost != null && (
-                      <span className="flex items-center gap-1.5 text-success font-semibold">
+                      <span className="flex items-center gap-1.5 font-semibold text-foreground">
                         <DollarSign className="h-3.5 w-3.5" />
                         {formatCurrency(m.proposalTotalCost)}
                       </span>
                     )}
                     {m.proposalTimelineWeeks && (
                       <span className="flex items-center gap-1.5 font-semibold">
-                        <Calendar className="h-3.5 w-3.5 text-magenta-1/70" />
+                        <Calendar className="h-3.5 w-3.5 text-primary" />
                         {m.proposalTimelineWeeks}w
                       </span>
                     )}

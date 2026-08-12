@@ -103,7 +103,7 @@ export function PillarEditor({
           <Button
             onClick={save}
             disabled={pending}
-            className="h-11 shrink-0 px-6 font-semibold shadow-sm"
+            className="h-11 shrink-0 px-6 font-semibold"
           >
             <Save className="h-4 w-4" />
             {pending ? "Saving…" : "Save changes"}

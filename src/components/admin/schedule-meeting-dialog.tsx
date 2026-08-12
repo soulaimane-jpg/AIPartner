@@ -188,7 +188,7 @@ export function ScheduleMeetingDialog({
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5">
-            <CalendarClock className="h-5 w-5 text-blue-600" />
+            <CalendarClock className="h-5 w-5 text-primary" />
             Schedule meeting
           </DialogTitle>
           <DialogDescription>
@@ -206,15 +206,15 @@ export function ScheduleMeetingDialog({
               className={cn(
                 "rounded-xl border px-3 py-2.5 text-left transition-all",
                 kind === "scheduled"
-                  ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
-                  : "border-slate-200 hover:bg-slate-50",
+                  ? "border-primary bg-primary/10 ring-1 ring-primary/20"
+                  : "border-border hover:bg-secondary/50",
               )}
             >
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <CalendarClock className="h-4 w-4 text-blue-600" />
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <CalendarClock className="h-4 w-4 text-primary" />
                 Scheduled
               </div>
-              <div className="mt-0.5 text-xs text-slate-500">
+              <div className="mt-0.5 text-xs text-muted-foreground">
                 Pick a date and time.
               </div>
             </button>
@@ -224,15 +224,15 @@ export function ScheduleMeetingDialog({
               className={cn(
                 "rounded-xl border px-3 py-2.5 text-left transition-all",
                 kind === "instant"
-                  ? "border-amber-500 bg-amber-50 ring-1 ring-amber-200"
-                  : "border-slate-200 hover:bg-slate-50",
+                  ? "border-primary bg-primary/10 ring-1 ring-primary/20"
+                  : "border-border hover:bg-secondary/50",
               )}
             >
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <Zap className="h-4 w-4 text-amber-600" />
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Zap className="h-4 w-4 text-primary" />
                 Instant
               </div>
-              <div className="mt-0.5 text-xs text-slate-500">
+              <div className="mt-0.5 text-xs text-muted-foreground">
                 Starts now · 30 minutes.
               </div>
             </button>
@@ -262,7 +262,7 @@ export function ScheduleMeetingDialog({
                   onChange={(e) => setStartsAt(e.target.value)}
                   required
                 />
-                <div className="text-[11px] text-slate-500">
+                <div className="text-[11px] text-muted-foreground">
                   Timezone: {tz}
                 </div>
               </div>
@@ -290,13 +290,13 @@ export function ScheduleMeetingDialog({
           {/* Attendees */}
           <div className="space-y-2">
             <Label className="flex items-center gap-1.5">
-              <Users className="h-3.5 w-3.5 text-slate-500" />
+              <Users className="h-3.5 w-3.5 text-muted-foreground" />
               Attendees
             </Label>
-            <div className="space-y-2 rounded-xl border border-slate-200 p-3 bg-slate-50/60">
+            <div className="space-y-2 rounded-xl border border-border p-3 bg-secondary/50">
               <label className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-2 text-sm text-slate-800">
-                  <UserCircle className="h-4 w-4 text-blue-600" />
+                <span className="flex items-center gap-2 text-sm text-foreground">
+                  <UserCircle className="h-4 w-4 text-primary" />
                   Customer
                   {brief?.customerName && (
                     <Badge variant="outline" className="ml-1 text-[10px]">
@@ -327,17 +327,17 @@ export function ScheduleMeetingDialog({
                   </div>
                 )}
               {includeCustomer && brief?.customerEmail && (
-                <div className="text-xs text-slate-500 pl-6">
+                <div className="text-xs text-muted-foreground pl-6">
                   Invite goes to{" "}
                   <span className="font-mono">{brief.customerEmail}</span>
                 </div>
               )}
 
-              <div className="h-px bg-slate-200/70" />
+              <div className="h-px bg-border" />
 
               <label className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-2 text-sm text-slate-800">
-                  <Building2 className="h-4 w-4 text-emerald-600" />
+                <span className="flex items-center gap-2 text-sm text-foreground">
+                  <Building2 className="h-4 w-4 text-primary" />
                   Partner
                 </span>
                 <Switch
@@ -374,15 +374,15 @@ export function ScheduleMeetingDialog({
               maxLength={4000}
               rows={3}
               placeholder="Discuss SoW, next steps, success criteria…"
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
 
           {brief && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 flex items-center gap-2">
-              <Link2 className="h-3.5 w-3.5 text-slate-400" />
+            <div className="rounded-lg border border-border bg-secondary/50 px-3 py-2 text-xs text-foreground/70 flex items-center gap-2">
+              <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
               Linked to brief{" "}
-              <span className="font-semibold text-slate-800">
+              <span className="font-semibold text-foreground">
                 {brief.title}
               </span>
             </div>

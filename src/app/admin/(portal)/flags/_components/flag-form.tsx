@@ -166,7 +166,7 @@ export function FlagFormCard() {
                   className={
                     "px-2 py-1 rounded text-xs font-medium border " +
                     (active
-                      ? "bg-blue-600 text-white border-blue-600"
+                      ? "border-primary bg-primary text-primary-foreground"
                       : "bg-muted/30 border-muted hover:bg-muted")
                   }
                 >

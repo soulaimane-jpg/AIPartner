@@ -64,7 +64,7 @@ export function TemplateEditor({ templates }: { templates: TemplateRow[] }) {
   };
 
   return (
-    <div className="rounded-lg border border-border bg-background divide-y divide-border">
+    <div className="customer-panel divide-y divide-line">
       {templates.map((t) => {
         const d = draftOf(t);
         const isOpen = open === t.key;

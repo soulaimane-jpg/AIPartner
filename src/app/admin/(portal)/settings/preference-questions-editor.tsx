@@ -44,7 +44,7 @@ export function PreferenceQuestionsEditor({
     );
 
   return (
-    <div className="rounded-lg border border-border bg-background divide-y divide-border">
+    <div className="customer-panel divide-y divide-line">
       {rows.map((q) => (
         <div
           key={q.fieldKey}

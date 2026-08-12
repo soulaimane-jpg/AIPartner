@@ -50,8 +50,8 @@ export default async function AdminPartnerDetailPage({
   const clouds = safeJsonParse<string[]>(profile?.clouds ?? '["gcp"]', ["gcp"]);
 
   return (
-    <div className="space-y-8 pb-20">
-      <div>
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header block">
         <Link
           href="/admin/partners"
           className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground"
@@ -59,7 +59,7 @@ export default async function AdminPartnerDetailPage({
           <ArrowLeft className="h-3.5 w-3.5" /> All partners
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold text-foreground">
+          <h1 className="portal-page-title">
             {partner.name}
           </h1>
           <Badge variant="outline" className="uppercase text-[10.5px] tracking-wider">
@@ -73,10 +73,10 @@ export default async function AdminPartnerDetailPage({
           {profile?.tagline ?? "—"} · joined {timeAgo(partner.createdAt)} ·{" "}
           {matchesCount} matches · {proposalsCount} proposals
         </p>
-      </div>
+      </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-lg border border-border bg-background p-5 space-y-4">
+        <section className="customer-panel space-y-4 p-5">
           <h2 className="text-[14px] font-semibold text-foreground">Profile</h2>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-[13px]">
             <div>
@@ -123,7 +123,7 @@ export default async function AdminPartnerDetailPage({
           )}
         </section>
 
-        <section className="rounded-lg border border-border bg-background p-5 space-y-4">
+        <section className="customer-panel space-y-4 p-5">
           <h2 className="text-[14px] font-semibold text-foreground">
             Terms &amp; Conditions
           </h2>

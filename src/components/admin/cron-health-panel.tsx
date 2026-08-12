@@ -30,12 +30,12 @@ const STATUS_META: Record<
   },
   failing: {
     label: "Failing",
-    cls: "border-rose-200 bg-rose-50 text-rose-700",
+    cls: "border-red-200 bg-red-50 text-red-700",
     Icon: AlertTriangle,
   },
   never_run: {
     label: "Never run",
-    cls: "border-slate-200 bg-slate-50 text-slate-600",
+    cls: "border-border bg-secondary text-muted-foreground",
     Icon: CircleSlash,
   },
 };
@@ -54,12 +54,12 @@ export async function CronHealthPanel() {
     <Card
       className={
         unhealthy.length > 0
-          ? "bg-white border-amber-200 shadow-sm"
-          : "bg-white border-slate-200 shadow-sm"
+          ? "customer-panel border-amber-200 bg-card"
+          : "customer-panel bg-card"
       }
     >
-      <CardHeader className="border-b border-slate-200 px-6 py-4">
-        <CardTitle className="flex items-center justify-between text-sm font-bold uppercase tracking-wider text-slate-900">
+      <CardHeader className="customer-panel-header">
+        <CardTitle className="flex items-center justify-between text-sm font-bold uppercase tracking-wider text-foreground">
           <span>Scheduler health</span>
           {unhealthy.length > 0 && (
             <Badge
@@ -72,7 +72,7 @@ export async function CronHealthPanel() {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="divide-y divide-slate-200">
+        <div className="divide-y divide-line">
           {health.map((h) => {
             const meta = STATUS_META[h.status];
             return (
@@ -82,30 +82,30 @@ export async function CronHealthPanel() {
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <meta.Icon className="h-4 w-4 text-slate-400" />
-                    <span className="text-sm font-semibold text-slate-900">
+                    <meta.Icon className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-semibold text-foreground">
                       {h.label}
                     </span>
-                    <span className="font-mono text-[11px] text-slate-400">
+                    <span className="font-mono text-[11px] text-muted-foreground">
                       {formatInterval(h.expectedIntervalMinutes)}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     {h.description}
                   </p>
                   {h.lastError && (
-                    <p className="mt-1 font-mono text-[11px] text-rose-600">
+                    <p className="mt-1 font-mono text-[11px] text-red-600">
                       {h.lastError.slice(0, 160)}
                     </p>
                   )}
                 </div>
                 <div className="flex items-center gap-3 text-right">
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-muted-foreground">
                     {h.lastSuccessAt
                       ? `Succeeded ${timeAgo(h.lastSuccessAt)}`
                       : "No successful run recorded"}
                     {h.consecutiveFailures > 0 && (
-                      <div className="text-rose-600">
+                      <div className="text-red-600">
                         {h.consecutiveFailures} consecutive failure
                         {h.consecutiveFailures === 1 ? "" : "s"}
                       </div>

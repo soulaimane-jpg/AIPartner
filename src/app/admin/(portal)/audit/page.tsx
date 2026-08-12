@@ -24,10 +24,10 @@ export default async function AdminAuditPage({
   const limit = Math.min(200, Math.max(1, Number(params.limit) || 100));
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <ScrollText className="h-6 w-6 text-blue-600" />
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header block">
+        <h1 className="portal-page-title flex items-center gap-2">
+          <ScrollText className="h-6 w-6 text-primary" />
           Audit log
         </h1>
         <p className="text-sm text-muted-foreground max-w-2xl">

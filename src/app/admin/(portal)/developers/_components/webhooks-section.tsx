@@ -190,7 +190,7 @@ export function WebhooksSection(props: {
                 Sign each incoming HMAC against this string. Won&rsquo;t be
                 shown again — rotate to get a new one.
               </p>
-              <div className="flex items-center gap-2 rounded-md border border-emerald-300 bg-white p-2">
+              <div className="flex items-center gap-2 rounded-md border border-emerald-300 bg-card p-2">
                 <code className="font-mono text-sm flex-1 truncate">
                   {revealedSecret.secret}
                 </code>
@@ -200,7 +200,7 @@ export function WebhooksSection(props: {
                     navigator.clipboard.writeText(revealedSecret.secret);
                     toast.success("Copied");
                   }}
-                  className="inline-flex items-center gap-1 rounded bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-800"
+                  className="inline-flex items-center gap-1 rounded bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
                 >
                   <Copy className="h-3 w-3" />
                   Copy
@@ -270,8 +270,8 @@ export function WebhooksSection(props: {
                   onClick={() => toggleEvent(e)}
                   className={`rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition ${
                     selectedEvents.includes(e)
-                      ? "bg-slate-900 text-white ring-slate-900"
-                      : "bg-white text-slate-700 ring-slate-300 hover:bg-slate-50"
+                      ? "bg-primary text-primary-foreground ring-primary"
+                      : "bg-card text-foreground ring-border hover:bg-primary/5"
                   }`}
                 >
                   {e}
@@ -288,7 +288,7 @@ export function WebhooksSection(props: {
             type="button"
             disabled={pending}
             onClick={onCreate}
-            className="inline-flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             <Webhook className="h-4 w-4" />
             {pending ? "Creating…" : "Add endpoint"}
@@ -416,7 +416,7 @@ function ToolbarBtn({
       className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-xs font-medium transition disabled:opacity-50 ${
         danger
           ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+          : "border-border bg-card text-foreground hover:bg-primary/5"
       }`}
     >
       {children}

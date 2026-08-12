@@ -22,15 +22,15 @@ const briefHeader = read("src/components/brief-workspace-header.tsx");
 const briefDrawer = read("src/app/(portal)/dashboard/_components/brief-drawer.tsx");
 
 describe("customer portal UI", () => {
-  it("uses one responsive portal shell with a customer-only light rail", () => {
+  it("uses one responsive light shell across every signed-in platform", () => {
+    expect(shell).toContain('const appearance = "platform" as const');
     expect(shell).toContain('data-portal-appearance={appearance}');
     expect(shell).toContain('className="portal-content');
     expect(shell).toContain("onOpenMobileNav");
     expect(rail).toContain("<Sheet open={mobileOpen}");
     expect(rail).toContain('aria-current={active ? "page" : undefined}');
-    expect(rail).toContain('appearance === "customer"');
+    expect(rail).toContain('appearance === "platform"');
     expect(rail).toContain('border-slate-200/80 bg-white text-slate-900');
-    expect(rail).toContain('bg-[hsl(var(--cinema-bg))] text-white');
   });
 
   it("keeps notifications and account controls functional", () => {

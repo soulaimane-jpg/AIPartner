@@ -113,13 +113,13 @@ export function PartnerMeetingPicker({
 
   if (hasProposed && !open) {
     return (
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-5 flex items-start gap-3">
-        <Clock className="h-4 w-4 text-blue-600 mt-0.5" />
+      <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-5">
+        <Clock className="mt-0.5 h-4 w-4 text-primary" />
         <div className="flex-1">
-          <p className="text-[13.5px] font-medium text-blue-800">
+          <p className="text-[13.5px] font-medium text-foreground">
             Meeting slots proposed
           </p>
-          <p className="text-[12.5px] text-blue-700 mt-0.5">
+          <p className="mt-0.5 text-[12.5px] text-muted-foreground">
             Waiting for the AI Partner team to confirm one of your proposed times.
           </p>
         </div>
@@ -138,7 +138,7 @@ export function PartnerMeetingPicker({
 
   return (
     <>
-      <div className="rounded-lg border border-border bg-background p-5 space-y-4">
+      <div className="space-y-4 rounded-xl border border-line bg-card p-5 shadow-elev-1">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-primary" />
           <span className="text-[14px] font-semibold text-foreground">
@@ -159,11 +159,11 @@ export function PartnerMeetingPicker({
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-cinema-bg/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-xl rounded-2xl bg-card border border-line shadow-elev-3 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xl rounded-2xl bg-card border border-line shadow-elev-2 overflow-hidden">
             <header className="flex items-center justify-between gap-3 px-6 py-4 border-b border-line">
               <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-lg bg-brand-1/10 text-brand-1">
+                <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
                   <CalendarDays className="h-5 w-5" />
                 </div>
                 <div>
@@ -179,7 +179,7 @@ export function PartnerMeetingPicker({
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close"
-                className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -217,7 +217,7 @@ export function PartnerMeetingPicker({
                             durationMins: parseInt(e.target.value, 10),
                           })
                         }
-                        className="flex h-9 rounded-md border border-line bg-card text-[13.5px] px-3 shadow-[var(--elev-1)] focus-visible:outline-none focus-visible:border-brand-1"
+                        className="flex h-9 rounded-md border border-line bg-card text-[13.5px] px-3 shadow-[var(--elev-1)] focus-visible:outline-none focus-visible:border-primary"
                       >
                         <option value={15}>15 min</option>
                         <option value={30}>30 min</option>
@@ -230,7 +230,7 @@ export function PartnerMeetingPicker({
                         type="button"
                         aria-label="Remove slot"
                         onClick={() => removeSlot(i)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-danger"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -243,7 +243,7 @@ export function PartnerMeetingPicker({
                 <button
                   type="button"
                   onClick={addSlot}
-                  className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-brand-1 hover:text-magenta-1"
+                  className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-primary hover:text-primary/80"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Add another slot ({3 - slots.length} left)
@@ -265,7 +265,7 @@ export function PartnerMeetingPicker({
               </FormField>
             </div>
 
-            <footer className="flex items-center justify-between gap-3 px-6 py-4 bg-surface-1 border-t border-line">
+            <footer className="flex items-center justify-between gap-3 border-t border-line bg-secondary/40 px-6 py-4">
               <Button
                 type="button"
                 variant="ghost"

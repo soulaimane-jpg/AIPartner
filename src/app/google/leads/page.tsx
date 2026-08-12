@@ -17,55 +17,60 @@ export default async function GooglerLeadsListPage() {
   const leads = await getGooglerLeads(session.user.id);
 
   return (
-    <div className="space-y-6 pb-20">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Your leads</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Every customer you&apos;ve referred — with live progress.
-          </p>
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header">
+        <div className="flex items-start gap-3">
+          <span className="portal-icon-box" aria-hidden>
+            <UserPlus className="h-[18px] w-[18px]" />
+          </span>
+          <div>
+            <h1 className="portal-page-title">Your leads</h1>
+            <p className="portal-page-description">
+              Every customer you&apos;ve referred — with live progress.
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline" className="h-10 px-4">
+        <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link href="/google/attribution">
-              <TrendingUp className="h-4 w-4 mr-2" /> Referral impact
+              <TrendingUp className="h-4 w-4" /> Referral impact
             </Link>
           </Button>
-          <Button asChild className="h-10 px-5">
+          <Button asChild className="w-full sm:w-auto">
             <Link href="/google/leads/new">
-              <UserPlus className="h-4 w-4 mr-2" /> Refer a customer
+              <UserPlus className="h-4 w-4" /> Refer a customer
             </Link>
           </Button>
         </div>
-      </div>
+      </header>
 
-      <div className="rounded-2xl border border-border bg-white overflow-hidden">
+      <div className="customer-table overflow-x-auto">
         {leads.length === 0 ? (
-          <div className="px-6 py-14 text-center text-sm text-muted-foreground italic">
+          <div className="px-6 py-14 text-center text-sm italic text-muted-foreground">
             You haven&apos;t referred anyone yet.
           </div>
         ) : (
-          <table className="w-full text-left">
-            <thead className="bg-secondary/40 border-b border-border">
-              <tr className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-                <th className="px-6 py-3">Customer</th>
+          <table className="w-full min-w-[720px] text-left text-[13px]">
+            <thead className="border-b border-line bg-surface-sunk">
+              <tr className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                <th className="px-5 py-3 sm:px-6">Customer</th>
                 <th className="px-4 py-3">Email</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Invited</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-line">
               {leads.map((l) => (
-                <tr key={l.id} className="hover:bg-secondary/30 transition-colors">
-                  <td className="px-6 py-4">
+                <tr key={l.id} className="transition-colors hover:bg-primary/5">
+                  <td className="px-5 py-3.5 sm:px-6">
                     <Link
                       href={`/google/leads/${l.id}`}
-                      className="text-sm font-semibold text-foreground hover:text-primary"
+                      className="font-semibold text-foreground hover:text-primary"
                     >
                       {l.companyName ?? l.customerDomain}
                     </Link>
                     {l.claimedUser?.name && (
-                      <div className="text-xs text-muted-foreground mt-0.5">
+                      <div className="mt-0.5 text-xs text-muted-foreground">
                         {l.claimedUser.name}
                         {l.claimedUser.company
                           ? ` · ${l.claimedUser.company.name}`
@@ -73,13 +78,13 @@ export default async function GooglerLeadsListPage() {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground">
+                  <td className="px-4 py-3.5 text-muted-foreground">
                     {l.customerEmail}
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-3.5">
                     <LeadStatusBadge status={l.status} />
                   </td>
-                  <td className="px-4 py-4 text-xs text-muted-foreground text-right">
+                  <td className="px-4 py-3.5 text-right text-xs text-muted-foreground">
                     {timeAgo(l.invitedAt)}
                   </td>
                 </tr>

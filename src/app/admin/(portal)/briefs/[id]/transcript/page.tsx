@@ -49,22 +49,22 @@ export default async function AdminTranscriptPage({
   );
 
   return (
-    <div className="space-y-6 pb-20">
-      <div>
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header block">
         <Link
           href={`/admin/briefs/${brief.id}`}
           className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Brief
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-foreground">
+        <h1 className="portal-page-title mt-2">
           Call transcript — {brief.title}
         </h1>
         <p className="mt-1 text-[13px] text-muted-foreground">
           {brief.companyName} · requested by {brief.ownerName ?? brief.ownerEmail} ·
           origin: {brief.origin}
         </p>
-      </div>
+      </header>
 
       {briefSections.length > 0 && (
         <div className="rounded-md border border-border bg-secondary/30 px-4 py-3 text-[13px] text-foreground">

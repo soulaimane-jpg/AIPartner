@@ -70,10 +70,10 @@ const ICONS: Record<RailIconKey, LucideIcon> = {
 type Badges = Partial<Record<NonNullable<RailItem["badgeKey"]>, number>>;
 
 /**
- * Flat dark left rail (Linear-style). No aurora, noise, glow, or
- * gradients. Items use a quiet hover wash and the active item gets a
- * subtle background tint — that's it. Brand identity comes from the
- * navy surface and the wordmark, not from effects.
+ * Light workspace rail (Linear-style). No aurora, noise, glow, or
+ * decorative gradients. Items use a quiet hover wash and the active
+ * item gets a subtle Google-blue tint — brand identity comes from the
+ * mark, clear hierarchy, and restrained color.
  */
 export function PortalRail({
   nav,
@@ -87,13 +87,13 @@ export function PortalRail({
   nav: PortalNav;
   user: { name: string; email: string; image?: string | null; role: string };
   badges?: Badges;
-  appearance?: "customer" | "default";
+  appearance?: "platform" | "default";
   mobileOpen?: boolean;
   onMobileOpenChange?: (open: boolean) => void;
   onCommand?: (action: NonNullable<RailItem["action"]>) => void;
 }) {
   const pathname = usePathname();
-  const light = appearance === "customer";
+  const light = appearance === "platform";
   const [collapsed, setCollapsed] = useState<boolean>(false);
 
   useEffect(() => {
@@ -118,7 +118,16 @@ export function PortalRail({
   }, []);
 
   const portalHome = getPortalHome(user.role);
-  const roleLabel = user.role === "PARTNER" ? "Partner workspace" : user.role === "CUSTOMER" ? "Customer workspace" : user.role;
+  const roleLabel =
+    user.role === "PARTNER"
+      ? "Partner workspace"
+      : user.role === "ADMIN"
+        ? "Admin workspace"
+        : user.role === "GOOGLER"
+          ? "Googler workspace"
+          : user.role === "COLLABORATOR"
+            ? "Collaborator workspace"
+            : "Customer workspace";
 
   const railContent = (mobile = false) => (
     <>

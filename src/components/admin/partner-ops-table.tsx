@@ -96,7 +96,7 @@ export function PartnerOpsTable({ rows }: { rows: PartnerOpsRow[] }) {
         </span>
       </div>
 
-      <div className="rounded-xl border border-line bg-card overflow-hidden">
+      <div className="customer-table">
         <table className="w-full text-sm">
           <thead className="bg-card/60 border-b border-line">
             <tr>
@@ -127,7 +127,7 @@ export function PartnerOpsTable({ rows }: { rows: PartnerOpsRow[] }) {
           <tbody className="divide-y divide-border">
             {visible.length === 0 ? (
               <tr>
-                <td colSpan={COLUMNS.length} className="px-4 py-8 text-center text-muted-foreground text-sm italic">
+                <td colSpan={COLUMNS.length} className="px-4 py-8 text-center text-muted-foreground text-sm">
                   No partners matched.
                 </td>
               </tr>
@@ -153,19 +153,19 @@ export function PartnerOpsTable({ rows }: { rows: PartnerOpsRow[] }) {
                       </Badge>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums">
+                  <td className="px-4 py-2.5 text-right tabular-nums">
                     {r.totalMatches}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums">
+                  <td className="px-4 py-2.5 text-right tabular-nums">
                     {formatResponseMs(r.medianResponseMs)}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums">
+                  <td className="px-4 py-2.5 text-right tabular-nums">
                     {r.acceptRate == null ? "—" : `${Math.round(r.acceptRate * 100)}%`}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums">
+                  <td className="px-4 py-2.5 text-right tabular-nums">
                     {r.winRate == null ? "—" : `${Math.round(r.winRate * 100)}%`}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums">
+                  <td className="px-4 py-2.5 text-right tabular-nums">
                     {r.csat == null ? "—" : r.csat.toFixed(1)}
                   </td>
                 </tr>

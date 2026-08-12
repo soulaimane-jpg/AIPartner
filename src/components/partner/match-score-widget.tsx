@@ -35,8 +35,8 @@ const LABEL_TONE: Record<string, string> = {
   Excellent: "bg-emerald-50 text-emerald-700 border-emerald-200",
   Strong: "bg-emerald-50/70 text-emerald-700 border-emerald-200",
   Fair: "bg-amber-50 text-amber-700 border-amber-200",
-  Weak: "bg-orange-50 text-orange-700 border-orange-200",
-  Poor: "bg-rose-50 text-rose-700 border-rose-200",
+  Weak: "border-amber-200 bg-amber-50 text-amber-700",
+  Poor: "border-destructive/20 bg-destructive/10 text-destructive",
 };
 
 export async function MatchScoreWidget({

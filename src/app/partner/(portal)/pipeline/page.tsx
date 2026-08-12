@@ -12,7 +12,7 @@ export default async function PartnerPipelinePage() {
   const workspace = await getPartnerWorkspaceData();
 
   return (
-    <div className="page-container-wide portal-page py-7 sm:py-9 lg:py-10">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
       <PartnerPageHeader
         eyebrow="Pipeline"
         title="Proposals in motion"

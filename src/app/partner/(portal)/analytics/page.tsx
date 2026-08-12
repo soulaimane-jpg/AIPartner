@@ -85,7 +85,7 @@ export default async function PartnerAnalyticsPage() {
   const declineMax = Math.max(1, ...lossReasons.declines.map((d) => d.count));
 
   return (
-    <div className="page-container-wide portal-page py-7 sm:py-9 lg:py-10">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
       <PartnerPageHeader
         eyebrow="Analytics"
         title="Your performance"
@@ -119,7 +119,7 @@ export default async function PartnerAnalyticsPage() {
           value={formatResponseMs(metrics.medianResponseMs)}
           detail="Median invitation to answer"
           icon={Timer}
-          tone="amber"
+          tone="blue"
         />
       </section>
 
@@ -172,7 +172,7 @@ export default async function PartnerAnalyticsPage() {
 
         <Card className="h-fit border-line bg-card shadow-elev-1">
           <CardContent className="p-5 sm:p-6">
-            <div className="grid h-10 w-10 place-items-center rounded-xl border border-blue-100 bg-blue-50 text-blue-700">
+            <div className="portal-icon-box h-10 w-10 rounded-xl">
               <ShieldCheck className="h-[18px] w-[18px]" />
             </div>
             <h2 className="mt-5 text-[15px] font-semibold tracking-tight text-foreground">
@@ -290,7 +290,7 @@ function PercentileBadge({ stat }: { stat: BenchmarkStat | null }) {
         "shrink-0 rounded-full px-2.5 py-1 text-[10.5px] font-semibold",
         strong && "border-emerald-200 bg-emerald-50 text-emerald-800",
         weak && "border-amber-200 bg-amber-50 text-amber-800",
-        !strong && !weak && "border-blue-100 bg-blue-50 text-blue-700",
+        !strong && !weak && "border-primary/20 bg-primary/5 text-primary",
       )}
     >
       {ordinal(stat.percentile)} percentile
@@ -319,7 +319,7 @@ function OutcomeStat({
   const style = {
     emerald: "border-emerald-100 bg-emerald-50 text-emerald-700",
     amber: "border-amber-100 bg-amber-50 text-amber-700",
-    slate: "border-slate-200 bg-slate-50 text-slate-700",
+    slate: "border-border bg-secondary text-muted-foreground",
   }[tone];
 
   return (

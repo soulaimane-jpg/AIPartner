@@ -85,9 +85,9 @@ export function PartnerImportCard({
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-gradient-to-br from-primary/[0.03] to-transparent p-6 sm:p-8 space-y-6">
+    <div className="customer-panel space-y-6 p-5 sm:p-7">
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm shrink-0">
+        <div className="portal-icon-box h-11 w-11 shrink-0">
           <Sparkles className="h-5 w-5" />
         </div>
         <div className="flex-1">
@@ -131,7 +131,7 @@ export function PartnerImportCard({
       </div>
 
       {preview && (
-        <div className="rounded-xl border border-border bg-white p-5 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="animate-in space-y-4 rounded-xl border border-border bg-card p-5 fade-in slide-in-from-bottom-2 duration-300">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1 min-w-0">
               <div className="text-sm font-semibold text-foreground truncate">

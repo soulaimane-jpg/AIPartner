@@ -46,7 +46,7 @@ export function SegmentedChoice({
             className={cn(
               "rounded-xl border p-3.5 text-left transition-colors",
               active
-                ? "border-primary bg-primary-soft shadow-elev-1"
+                ? "border-primary/30 bg-primary/5 shadow-elev-1"
                 : "border-line bg-card hover:border-line-strong hover:bg-secondary/50",
               disabled && "cursor-not-allowed opacity-60",
             )}
@@ -111,7 +111,7 @@ export function MultiChoice({
               className={cn(
                 "rounded-xl border p-3.5 text-left transition-colors",
                 active
-                  ? "border-primary bg-primary-soft shadow-elev-1"
+                  ? "border-primary/30 bg-primary/5 shadow-elev-1"
                   : "border-line bg-card hover:border-line-strong hover:bg-secondary/50",
                 (disabled || blocked) && "cursor-not-allowed opacity-50",
               )}
@@ -240,7 +240,7 @@ export function RangeInput({
           disabled={disabled}
           value={value.low ?? ""}
           onChange={(e) => onChange({ ...value, low: parse(e.target.value) })}
-          className="h-11 w-28 rounded-xl bg-white font-mono text-[13px]"
+          className="h-11 w-28 rounded-xl bg-card font-mono text-[13px]"
         />
       </div>
       <Minus className="mb-3.5 h-3.5 w-3.5 text-muted-foreground" />
@@ -254,7 +254,7 @@ export function RangeInput({
           disabled={disabled}
           value={value.high ?? ""}
           onChange={(e) => onChange({ ...value, high: parse(e.target.value) })}
-          className="h-11 w-28 rounded-xl bg-white font-mono text-[13px]"
+          className="h-11 w-28 rounded-xl bg-card font-mono text-[13px]"
         />
       </div>
       {suffix && (
@@ -291,7 +291,7 @@ export function RepeaterCard({
           size="icon"
           onClick={onRemove}
           aria-label={`Remove ${title} ${index + 1}`}
-          className="h-8 w-8 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+          className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
@@ -354,7 +354,7 @@ export function LimitedTextarea({
         // minutes of typing is a hostile way to communicate it.
         onChange={(e) => onChange(e.target.value.slice(0, limit))}
         placeholder={placeholder}
-        className="w-full rounded-2xl border border-slate-200 bg-white px-3.5 py-3 text-[13px] leading-relaxed text-slate-900 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-60"
+        className="w-full rounded-xl border border-line bg-card px-3.5 py-3 text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-60"
       />
       <div
         className={cn(

@@ -144,7 +144,7 @@ export function ApiKeysSection(props: {
                 We&rsquo;ll never display it again. Anyone with this string
                 can call the API as the tenant.
               </p>
-              <div className="flex items-center gap-2 rounded-md border border-emerald-300 bg-white p-2">
+              <div className="flex items-center gap-2 rounded-md border border-emerald-300 bg-card p-2">
                 <code className="font-mono text-sm flex-1 truncate">
                   {revealed.raw}
                 </code>
@@ -154,7 +154,7 @@ export function ApiKeysSection(props: {
                     navigator.clipboard.writeText(revealed.raw);
                     toast.success("Copied to clipboard");
                   }}
-                  className="inline-flex items-center gap-1 rounded bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-800"
+                  className="inline-flex items-center gap-1 rounded bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
                 >
                   <Copy className="h-3 w-3" />
                   Copy
@@ -213,8 +213,8 @@ export function ApiKeysSection(props: {
                   onClick={() => toggleScope(s)}
                   className={`rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition ${
                     scopes.includes(s)
-                      ? "bg-slate-900 text-white ring-slate-900"
-                      : "bg-white text-slate-700 ring-slate-300 hover:bg-slate-50"
+                      ? "bg-primary text-primary-foreground ring-primary"
+                      : "bg-card text-foreground ring-border hover:bg-primary/5"
                   }`}
                 >
                   {s}
@@ -239,7 +239,7 @@ export function ApiKeysSection(props: {
             type="button"
             disabled={pending}
             onClick={onCreate}
-            className="inline-flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             <KeyRound className="h-4 w-4" />
             {pending ? "Creating…" : "Mint API key"}
@@ -252,7 +252,7 @@ export function ApiKeysSection(props: {
           No API keys yet.
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-card">
+        <div className="customer-table">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>

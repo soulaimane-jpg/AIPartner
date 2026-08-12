@@ -33,20 +33,23 @@ export default async function LeadDetailPage({
   const inviteUrl = `/auth/sign-up?invite=${lead.inviteToken}&email=${encodeURIComponent(lead.customerEmail)}`;
 
   return (
-    <div className="space-y-8 pb-20">
-      <div>
-        <Link
-          href="/google/leads"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to leads
-        </Link>
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+    <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
+      <header className="portal-page-header">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="portal-icon-box" aria-hidden>
+            <Building2 className="h-[18px] w-[18px]" />
+          </span>
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-foreground truncate">
+            <Link
+              href="/google/leads"
+              className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to leads
+            </Link>
+            <h1 className="portal-page-title truncate">
               {lead.companyName ?? lead.customerDomain}
             </h1>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+            <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <Mail className="h-3.5 w-3.5" /> {lead.customerEmail}
               </span>
@@ -56,13 +59,13 @@ export default async function LeadDetailPage({
               </span>
             </div>
           </div>
-          <LeadStatusBadge status={lead.status} className="text-xs h-7 px-3" />
         </div>
-      </div>
+        <LeadStatusBadge status={lead.status} className="h-7 px-3 text-xs" />
+      </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Timeline */}
-        <div className="lg:col-span-2 rounded-2xl border border-border bg-white p-6">
+        <div className="lg:col-span-2 customer-panel p-6">
           <div className="text-sm font-semibold text-foreground">
             Customer journey
           </div>
@@ -71,7 +74,7 @@ export default async function LeadDetailPage({
             AI Partner.
           </p>
 
-          <ol className="relative border-l border-border pl-5 space-y-5">
+          <ol className="relative border-l border-line pl-5 space-y-5">
             {LEAD_MILESTONES.map((m, i) => {
               const reached = i <= activeIdx;
               const current = i === activeIdx;
@@ -79,7 +82,7 @@ export default async function LeadDetailPage({
                 <li key={m.key} className="relative">
                   <span
                     className={cn(
-                      "absolute -left-[27px] grid h-4 w-4 place-items-center rounded-full border-2 bg-white",
+                      "absolute -left-[27px] grid h-4 w-4 place-items-center rounded-full border-2 bg-card",
                       reached
                         ? "border-primary"
                         : "border-border",
@@ -120,7 +123,7 @@ export default async function LeadDetailPage({
 
         {/* Sidebar: claimed user + invite link + notes + email */}
         <div className="space-y-6">
-          <div className="rounded-2xl border border-border bg-white p-5">
+          <div className="customer-panel p-5">
             <div className="text-xs uppercase tracking-wider font-bold text-muted-foreground">
               Customer account
             </div>
@@ -149,7 +152,7 @@ export default async function LeadDetailPage({
             )}
           </div>
 
-          <div className="rounded-2xl border border-border bg-white p-5 space-y-3">
+          <div className="customer-panel p-5 space-y-3">
             <div className="text-xs uppercase tracking-wider font-bold text-muted-foreground">
               Invite link
             </div>
@@ -164,7 +167,7 @@ export default async function LeadDetailPage({
           </div>
 
           {lead.notes && (
-            <div className="rounded-2xl border border-border bg-white p-5">
+            <div className="customer-panel p-5">
               <div className="text-xs uppercase tracking-wider font-bold text-muted-foreground">
                 Your notes
               </div>
@@ -175,7 +178,7 @@ export default async function LeadDetailPage({
           )}
 
           {lead.mockEmailBody && (
-            <details className="rounded-2xl border border-border bg-white p-5 group">
+            <details className="customer-panel p-5 group">
               <summary className="cursor-pointer text-xs uppercase tracking-wider font-bold text-muted-foreground hover:text-foreground transition-colors">
                 Preview invite email
               </summary>

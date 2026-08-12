@@ -40,7 +40,7 @@ export function PortalTopBar({
 }: {
   crumbs?: Crumb[];
   user: { name: string; email: string; image?: string | null; role: string };
-  appearance?: "customer" | "default";
+  appearance?: "platform" | "default";
   onOpenMobileNav: () => void;
   onOpenPalette: () => void;
   notifications: Array<{
@@ -59,7 +59,7 @@ export function PortalTopBar({
 }) {
   const pathname = usePathname();
   const trail = crumbs ?? autoCrumbs(pathname);
-  const light = appearance === "customer";
+  const light = appearance === "platform";
 
   const [shortcut, setShortcut] = useState("Ctrl K");
   useEffect(() => {

@@ -173,7 +173,7 @@ export function PartnerProfileForm({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Import fills fields across every tab, so it sits above the tab bar
           rather than between the tabs and their panels. */}
       <PartnerImportCard
@@ -197,24 +197,24 @@ export function PartnerProfileForm({
               <Users className="mr-2 h-3.5 w-3.5" /> Team
             </TabsTrigger>
           </TabsList>
-          <Button onClick={save} disabled={pending} className="h-11 px-6 font-semibold shadow-sm">
+          <Button onClick={save} disabled={pending} className="h-11 px-6 font-semibold">
             <Save className="mr-2 h-4 w-4" /> {pending ? "Saving..." : "Save changes"}
           </Button>
         </div>
 
-      <TabsContent value="company" className="mt-0 space-y-8 animate-fade-in">
+      <TabsContent value="company" className="mt-0 space-y-5 animate-fade-in">
         <Card className="border-line bg-card shadow-elev-1">
-          <CardContent className="space-y-8 p-5 sm:p-7 lg:p-8">
+          <CardContent className="space-y-6 p-5 sm:p-6">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-[2px] bg-indigo-500"></div>
-              <h2 className="text-xl font-semibold tracking-tight text-foreground">Company details</h2>
+              <div className="h-8 w-[2px] bg-primary"></div>
+              <h2 className="text-[17px] font-semibold tracking-tight text-foreground">Company details</h2>
             </div>
-            <div className="grid gap-8 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-2">
               <Field label="Company name">
                 <Input
                   value={state.name}
                   onChange={(e) => update({ name: e.target.value })}
-                  className="bg-white border-slate-200 text-slate-900 rounded-xl h-12"
+                  className="bg-card border-line text-foreground rounded-lg h-11"
                 />
               </Field>
               <Field label="Tagline">
@@ -222,7 +222,7 @@ export function PartnerProfileForm({
                   value={state.tagline}
                   onChange={(e) => update({ tagline: e.target.value })}
                   placeholder="Trusted GCP partner for data platforms"
-                  className="bg-white border-slate-200 text-slate-900 rounded-xl h-12"
+                  className="bg-card border-line text-foreground rounded-lg h-11"
                 />
               </Field>
               <Field label="Company overview" className="md:col-span-2">
@@ -230,7 +230,7 @@ export function PartnerProfileForm({
                   rows={4}
                   value={state.description}
                   onChange={(e) => update({ description: e.target.value })}
-                  className="bg-white border-slate-200 text-slate-900 rounded-2xl min-h-[120px]"
+                  className="min-h-[110px] rounded-xl border-line bg-card text-foreground"
                 />
               </Field>
               <Field label="Company Website">
@@ -238,14 +238,14 @@ export function PartnerProfileForm({
                   value={state.website}
                   onChange={(e) => update({ website: e.target.value })}
                   placeholder="https://yourcompany.com"
-                  className="bg-white border-slate-200 text-slate-900 rounded-xl h-12"
+                  className="bg-card border-line text-foreground rounded-lg h-11"
                 />
               </Field>
               <Field label="Headquarters">
                 <Input
                   value={state.headquarters}
                   onChange={(e) => update({ headquarters: e.target.value })}
-                  className="bg-white border-slate-200 text-slate-900 rounded-xl h-12"
+                  className="bg-card border-line text-foreground rounded-lg h-11"
                 />
               </Field>
               <Field label="Team size">
@@ -253,14 +253,14 @@ export function PartnerProfileForm({
                   value={state.teamSize}
                   onChange={(e) => update({ teamSize: e.target.value })}
                   placeholder="e.g., 50–200"
-                  className="bg-white border-slate-200 text-slate-900 rounded-xl h-12 font-mono"
+                  className="bg-card border-line text-foreground rounded-lg h-11 font-mono"
                 />
               </Field>
               <Field label="Primary industry">
                 <Input
                   value={state.industry}
                   onChange={(e) => update({ industry: e.target.value })}
-                  className="bg-white border-slate-200 text-slate-900 rounded-xl h-12"
+                  className="bg-card border-line text-foreground rounded-lg h-11"
                 />
               </Field>
             </div>
@@ -268,17 +268,17 @@ export function PartnerProfileForm({
         </Card>
 
         <Card className="border-line bg-card shadow-elev-1">
-          <CardContent className="space-y-8 p-5 sm:p-7 lg:p-8">
+          <CardContent className="space-y-6 p-5 sm:p-6">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-[2px] bg-cyan-500"></div>
+              <div className="h-8 w-[2px] bg-primary"></div>
               <div className="flex items-center gap-3">
-                <Trophy className="h-5 w-5 text-blue-600" />
-                <h2 className="text-xl font-semibold tracking-tight text-foreground">Awards and recognition</h2>
+                <Trophy className="h-5 w-5 text-primary" />
+                <h2 className="text-[17px] font-semibold tracking-tight text-foreground">Awards and recognition</h2>
               </div>
             </div>
             <div className="space-y-4">
               {state.awards.map((a, i) => (
-                <div key={i} className="flex flex-col sm:flex-row gap-3 p-5 rounded-2xl bg-slate-50 border border-slate-200 group transition-all hover:border-slate-200">
+                <div key={i} className="group flex flex-col gap-3 rounded-xl border border-border bg-surface-sunk p-4 transition-colors hover:border-primary/25 sm:flex-row">
                   <Input
                     placeholder="Award title"
                     value={a.title}
@@ -291,7 +291,7 @@ export function PartnerProfileForm({
                     }
                     className="bg-transparent border-0 focus-visible:ring-0 h-8 text-sm font-bold flex-1"
                   />
-                  <div className="hidden sm:block h-8 w-[1px] bg-white"></div>
+                  <div className="hidden sm:block h-8 w-px bg-border"></div>
                   <Input
                     placeholder="Issuer"
                     value={a.issuer ?? ""}
@@ -302,9 +302,9 @@ export function PartnerProfileForm({
                         ),
                       })
                     }
-                    className="bg-transparent border-0 focus-visible:ring-0 h-8 text-sm w-full sm:w-48 text-slate-500"
+                    className="bg-transparent border-0 focus-visible:ring-0 h-8 text-sm w-full sm:w-48 text-muted-foreground"
                   />
-                  <div className="hidden sm:block h-8 w-[1px] bg-white"></div>
+                  <div className="hidden sm:block h-8 w-px bg-border"></div>
                   <Input
                     type="number"
                     placeholder="Year"
@@ -316,7 +316,7 @@ export function PartnerProfileForm({
                         ),
                       })
                     }
-                    className="bg-transparent border-0 focus-visible:ring-0 h-8 text-sm w-full sm:w-24 font-mono text-blue-600"
+                    className="bg-transparent border-0 focus-visible:ring-0 h-8 text-sm w-full sm:w-24 font-mono text-primary"
                   />
                   <Button
                     variant="ghost"
@@ -326,14 +326,14 @@ export function PartnerProfileForm({
                         awards: state.awards.filter((_, idx) => idx !== i),
                       })
                     }
-                    className="h-8 w-8 text-slate-700 hover:text-red-500 hover:bg-red-500/10 self-center"
+                    className="h-8 w-8 self-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                   >
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
               {state.awards.length === 0 && (
-                <div className="py-12 text-center border border-dashed border-slate-200 rounded-2xl text-xs font-mono text-slate-700 ">
+                <div className="rounded-xl border border-dashed border-border py-10 text-center text-xs text-muted-foreground">
                   No awards added yet.
                 </div>
               )}
@@ -357,14 +357,14 @@ export function PartnerProfileForm({
         </Card>
       </TabsContent>
 
-      <TabsContent value="gcloud" className="mt-0 space-y-8 animate-fade-in">
+      <TabsContent value="gcloud" className="mt-0 space-y-5 animate-fade-in">
 
         <Card className="border-line bg-card shadow-elev-1">
-          <CardContent className="space-y-10 p-5 sm:p-7 lg:p-8">
+          <CardContent className="space-y-7 p-5 sm:p-6">
             <div className="space-y-6">
               <div className="flex items-center gap-3">
-                <div className="h-8 w-[2px] bg-indigo-500"></div>
-                <h2 className="text-xl font-semibold tracking-tight text-foreground">Partner tier</h2>
+                <div className="h-8 w-[2px] bg-primary"></div>
+                <h2 className="text-[17px] font-semibold tracking-tight text-foreground">Partner tier</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {PARTNER_TIERS.map((t) => (
@@ -375,15 +375,15 @@ export function PartnerProfileForm({
                       update({ tier: t.key as Initial["tier"] })
                     }
                     className={cn(
-                      "group flex flex-col items-center gap-3 rounded-xl border p-6 transition-colors",
+                      "group flex flex-col items-center gap-2.5 rounded-xl border p-4 transition-colors",
                       state.tier === t.key
-                        ? "border-primary bg-primary-soft shadow-elev-1"
+                        ? "border-primary bg-primary/5 shadow-elev-1"
                         : "border-line bg-card hover:border-line-strong hover:bg-secondary/50"
                     )}
                   >
                     <div className={cn(
                       "h-2.5 w-2.5 rounded-full transition-transform",
-                      state.tier === t.key ? "scale-110 bg-primary" : "bg-slate-300"
+                      state.tier === t.key ? "scale-110 bg-primary" : "bg-muted-foreground/30"
                     )} />
                     <div className={cn(
                       "text-xs font-semibold transition-colors",
@@ -398,8 +398,8 @@ export function PartnerProfileForm({
 
             <div className="space-y-6">
               <div className="flex items-center gap-3">
-                <div className="h-8 w-[2px] bg-cyan-500"></div>
-                <h2 className="text-xl font-semibold tracking-tight text-foreground">Google Cloud specializations</h2>
+                <div className="h-8 w-[2px] bg-primary"></div>
+                <h2 className="text-[17px] font-semibold tracking-tight text-foreground">Google Cloud specializations</h2>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {GCP_SPECIALIZATIONS.map((s) => {
@@ -410,9 +410,9 @@ export function PartnerProfileForm({
                       type="button"
                       onClick={() => toggle("specializations", s)}
                       className={cn(
-                        "rounded-xl border p-4 text-center text-xs font-semibold transition-colors",
+                        "rounded-xl border p-3 text-center text-xs font-semibold transition-colors",
                         active
-                          ? "border-primary bg-primary-soft text-primary shadow-elev-1"
+                          ? "border-primary bg-primary/5 text-primary shadow-elev-1"
                           : "border-line bg-card text-muted-foreground hover:border-line-strong hover:bg-secondary/50 hover:text-foreground"
                       )}
                     >
@@ -425,8 +425,8 @@ export function PartnerProfileForm({
 
             <div className="space-y-4">
                <div className="flex items-center gap-3">
-                <div className="h-8 w-[2px] bg-indigo-400"></div>
-                <h2 className="text-xl font-semibold tracking-tight text-foreground">Products and expertise</h2>
+                <div className="h-8 w-[2px] bg-primary"></div>
+                <h2 className="text-[17px] font-semibold tracking-tight text-foreground">Products and expertise</h2>
               </div>
               <TagInput
                 values={state.expertiseAreas}
@@ -439,15 +439,15 @@ export function PartnerProfileForm({
         </Card>
       </TabsContent>
 
-      <TabsContent value="team" className="mt-0 space-y-8 animate-fade-in">
+      <TabsContent value="team" className="mt-0 space-y-5 animate-fade-in">
         <Card className="border-line bg-card shadow-elev-1">
-          <CardContent className="space-y-8 p-5 sm:p-7 lg:p-8">
+          <CardContent className="space-y-6 p-5 sm:p-6">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <div className="h-8 w-[2px] bg-indigo-500"></div>
-                <h2 className="text-xl font-semibold tracking-tight text-foreground">Team members</h2>
+                <div className="h-8 w-[2px] bg-primary"></div>
+                <h2 className="text-[17px] font-semibold tracking-tight text-foreground">Team members</h2>
               </div>
-              <p className="text-sm text-slate-500 font-medium">
+              <p className="text-sm text-muted-foreground font-medium">
                 Invite colleagues who should manage opportunities and proposals.
               </p>
             </div>
@@ -457,7 +457,7 @@ export function PartnerProfileForm({
             <div className="space-y-3">
               <div className="text-xs font-semibold text-muted-foreground">Members</div>
               {teamMembers.length === 0 ? (
-                <div className="py-20 text-center border border-dashed border-slate-200 rounded-3xl text-xs font-mono text-slate-700 ">
+                <div className="rounded-xl border border-dashed border-border py-12 text-center text-xs text-muted-foreground">
                   No team members yet.
                 </div>
               ) : (
@@ -475,10 +475,10 @@ export function PartnerProfileForm({
                           <div className="text-[14px] font-semibold text-foreground transition-colors group-hover:text-primary">
                             {m.name ?? "Team member"}
                           </div>
-                          <div className="text-xs font-mono text-slate-500 ">{m.email}</div>
+                          <div className="text-xs font-mono text-muted-foreground ">{m.email}</div>
                         </div>
                       </div>
-                      <Badge variant="outline" className="w-fit rounded-full border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-semibold text-blue-700">
+                      <Badge variant="outline" className="w-fit rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[10px] font-semibold text-primary">
                         MEMBER
                       </Badge>
                     </div>
@@ -555,9 +555,9 @@ function TagInput({
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         {values.map((v) => (
-          <Badge key={v} variant="outline" className="group gap-2 rounded-lg border-blue-100 bg-blue-50 px-3 py-1.5 text-blue-700 transition-colors hover:border-blue-200">
+          <Badge key={v} variant="outline" className="group gap-2 rounded-lg border-primary/20 bg-primary/5 px-3 py-1.5 text-primary transition-colors hover:border-primary/30">
             {v}
-            <button type="button" onClick={() => onChange(values.filter((x) => x !== v))} className="text-slate-600 hover:text-red-600 transition-colors">
+            <button type="button" onClick={() => onChange(values.filter((x) => x !== v))} className="text-muted-foreground transition-colors hover:text-destructive">
               <X className="h-3 w-3" />
             </button>
           </Badge>
@@ -574,7 +574,7 @@ function TagInput({
             }
           }}
           placeholder={placeholder}
-          className="h-12 bg-white border-slate-200 text-slate-900 rounded-xl font-mono text-xs"
+          className="h-11 rounded-lg border-line bg-card font-mono text-xs text-foreground"
         />
         <Button type="button" variant="outline" size="sm" onClick={add} className="h-11 shrink-0 rounded-lg border-line bg-card px-5 text-xs font-semibold text-foreground hover:bg-secondary">
           <Plus className="h-4 w-4 mr-1" /> Add
@@ -620,7 +620,7 @@ function InviteRow() {
             type="email"
             required
             placeholder="colleague@company.com"
-            className="h-11 bg-white border-slate-200 text-slate-900 rounded-xl font-mono text-xs"
+            className="h-11 bg-card border-line text-foreground rounded-xl font-mono text-xs"
           />
         </div>
         <div className="space-y-2">
@@ -629,7 +629,7 @@ function InviteRow() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Full name"
-            className="h-11 bg-white border-slate-200 text-slate-900 rounded-xl text-xs"
+            className="h-11 bg-card border-line text-foreground rounded-xl text-xs"
           />
         </div>
         <Button
@@ -637,7 +637,7 @@ function InviteRow() {
           onClick={invite}
           disabled={pending || !email.trim()}
           aria-busy={pending || undefined}
-          className="h-11 self-end rounded-lg px-6 font-semibold shadow-sm"
+          className="h-11 self-end rounded-lg px-6 font-semibold"
         >
           {pending ? "Sending..." : "Send invite"}
         </Button>
