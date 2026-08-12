@@ -1,4 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
+import {
+  AnswerRatingV1,
+  BriefUpdateV1,
+  type BriefUpdateParse,
+} from "@/lib/schemas/ai/brief-update";
 import { env } from "@/env";
 
 export const anthropic = new Anthropic({
@@ -107,17 +112,47 @@ export function stripBriefUpdate(text: string): string {
 }
 
 /**
- * Parse the <brief_update>...</brief_update> JSON block from a reply.
- * Returns an empty object on failure.
+ * Parse and VALIDATE the <brief_update> block from a reply.
+ *
+ * This used to return `{}` on any failure, which the customer experienced
+ * as "the AI ignored what I said" with nothing logged and nothing shown.
+ * It now distinguishes absent / malformed / schema-mismatched so the route
+ * can tell the user, and drops unknown keys instead of forwarding them to
+ * the patch applier.
  */
-export function parseBriefUpdate(text: string): Record<string, unknown> {
+export function parseBriefUpdate(text: string): BriefUpdateParse {
   const match = text.match(/<brief_update>([\s\S]*?)<\/brief_update>/);
-  if (!match) return {};
+  if (!match) return { ok: false, failure: { code: "absent" } };
+
+  let raw: unknown;
   try {
-    return JSON.parse(match[1].trim());
+    raw = JSON.parse(match[1].trim());
   } catch {
-    return {};
+    return { ok: false, failure: { code: "malformed_json" } };
   }
+
+  const parsed = BriefUpdateV1.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      failure: {
+        code: "schema_mismatch",
+        issues: parsed.error.issues
+          .slice(0, 5)
+          .map((i) => `${i.path.join(".") || "$"}: ${i.message}`),
+      },
+    };
+  }
+
+  const allowed = new Set(Object.keys(parsed.data));
+  const droppedKeys =
+    raw && typeof raw === "object"
+      ? Object.keys(raw as Record<string, unknown>).filter(
+          (k) => !allowed.has(k),
+        )
+      : [];
+
+  return { ok: true, patch: parsed.data, droppedKeys };
 }
 
 /** Structured per-answer rating emitted by the assistant. */
@@ -130,22 +165,19 @@ export type AnswerRating = {
 export function parseAnswerRating(text: string): AnswerRating | null {
   const match = text.match(/<answer_rating>([\s\S]*?)<\/answer_rating>/);
   if (!match) return null;
+  let raw: unknown;
   try {
-    const raw = JSON.parse(match[1].trim());
-    return {
-      score: clamp(Number(raw.score) || 0, 0, 100),
-      strengths: Array.isArray(raw.strengths)
-        ? raw.strengths.map(String).slice(0, 3)
-        : [],
-      suggestion: typeof raw.suggestion === "string" ? raw.suggestion : "",
-    };
+    raw = JSON.parse(match[1].trim());
   } catch {
     return null;
   }
-}
-
-function clamp(n: number, lo: number, hi: number) {
-  return Math.max(lo, Math.min(hi, n));
+  const parsed = AnswerRatingV1.safeParse(raw);
+  if (!parsed.success) return null;
+  return {
+    score: Math.round(parsed.data.score),
+    strengths: parsed.data.strengths.slice(0, 3),
+    suggestion: parsed.data.suggestion,
+  };
 }
 
 /**

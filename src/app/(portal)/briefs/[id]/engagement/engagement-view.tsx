@@ -98,7 +98,10 @@ export function EngagementView({ engagement }: { engagement: EngagementDTO }) {
             label="Contract value"
             value={
               engagement.contractValueCents !== null
-                ? formatCurrency(engagement.contractValueCents)
+                ? formatCurrency(
+                    engagement.contractValueCents,
+                    engagement.currency,
+                  )
                 : "Not stated"
             }
           />

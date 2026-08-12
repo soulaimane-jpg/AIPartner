@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { ArrowLeft, UserPlus } from "lucide-react";
 import { GooglerSubmitLeadForm } from "@/components/googler-submit-lead-form";
+import { requireGoogler } from "@/lib/require-role";
 
 export const metadata = { title: "Refer a customer · Google Portal" };
 
-export default function SubmitLeadPage() {
+export default async function SubmitLeadPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireGoogler();
+
   return (
     <div className="page-container portal-page max-w-4xl py-6 sm:py-8 lg:py-10">
       <header className="portal-page-header">

@@ -9,6 +9,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { requireGoogler } from "@/lib/require-role";
 
 export const metadata = { title: "Why AI Partner · Google Portal" };
 
@@ -45,7 +46,11 @@ const BENEFITS = [
   },
 ];
 
-export default function GooglerOnboardingPage() {
+export default async function GooglerOnboardingPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireGoogler();
+
   return (
     <div className="page-container-wide portal-page py-6 sm:py-8 lg:py-10">
       <header className="portal-page-header">

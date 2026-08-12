@@ -40,18 +40,30 @@ export type RiskFinding = {
 
 export type RiskRadarSnapshot = {
   id: string;
-  overall: "info" | "warn" | "block";
+  /**
+   * `failed` is written when the model call itself didn't complete. The
+   * submit gate treats it like a blocker so an AI outage can't silently
+   * remove the pre-submit review — but the customer can acknowledge it
+   * and proceed, so an outage doesn't hard-stop the funnel either.
+   */
+  overall: "info" | "warn" | "block" | "failed";
   findings: RiskFinding[];
   acknowledgedAt: Date | null;
+  /**
+   * True when the brief has been edited since this report was produced.
+   * The server re-checks the brief hash, so a stale pass is not a pass.
+   */
+  stale?: boolean;
 };
 
 const SEVERITY_META: Record<
-  "info" | "warn" | "block",
+  "info" | "warn" | "block" | "failed",
   { label: string; tone: "neutral" | "warning" | "danger"; icon: typeof Info }
 > = {
   info: { label: "Note", tone: "neutral", icon: Info },
   warn: { label: "Warning", tone: "warning", icon: AlertTriangle },
   block: { label: "Blocker", tone: "danger", icon: ShieldAlert },
+  failed: { label: "Didn't complete", tone: "warning", icon: AlertTriangle },
 };
 
 export function RiskRadarCard({
@@ -130,7 +142,11 @@ export function RiskRadarCard({
 
   const meta = SEVERITY_META[snapshot.overall];
   const Icon = meta.icon;
-  const needsAck = snapshot.overall === "block" && !snapshot.acknowledgedAt;
+  // A failed run is not a pass: it must be re-run or explicitly
+  // acknowledged, exactly like a blocker.
+  const needsAck =
+    (snapshot.overall === "block" || snapshot.overall === "failed") &&
+    !snapshot.acknowledgedAt;
 
   return (
     <div
@@ -212,11 +228,36 @@ export function RiskRadarCard({
         </p>
       )}
 
+      {snapshot.overall === "failed" && (
+        <p className="text-xs text-muted-foreground">
+          The AI reviewer couldn&apos;t finish this scan. Re-scan when you
+          can, or acknowledge to send without it.
+        </p>
+      )}
+
+      {snapshot.stale && (
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2">
+          <p className="text-xs text-amber-800">
+            You&apos;ve edited the brief since this scan, so it no longer
+            reflects what partners would see. Re-scan before sending.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => run(true)}
+            disabled={pending}
+          >
+            Re-scan
+          </Button>
+        </div>
+      )}
+
       {needsAck && (
         <div className="flex items-center justify-between gap-3 rounded-lg bg-destructive/10 px-3 py-2">
           <p className="text-xs text-destructive">
-            We won&apos;t send this to partners until you address the blockers
-            or acknowledge you&apos;ve read them.
+            {snapshot.overall === "failed"
+              ? "We won't send this to partners until the review runs, or you acknowledge sending without it."
+              : "We won't send this to partners until you address the blockers or acknowledge you've read them."}
           </p>
           <Button
             size="sm"

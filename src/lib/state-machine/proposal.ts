@@ -11,6 +11,7 @@
  */
 
 import "server-only";
+import type { PoolClient } from "pg";
 import { queryOne, updateRows } from "@/lib/db";
 import { auditTransition, type TransitionActor } from "./transition";
 
@@ -80,15 +81,24 @@ export interface TransitionProposalOptions {
   meta?: Record<string, unknown>;
   /** Extra Proposal columns to set atomically with the status write. */
   data?: Record<string, unknown>;
+  /**
+   * Join a caller's transaction. The row is locked FOR UPDATE so the
+   * read-then-write check becomes atomic under concurrency.
+   */
+  client?: PoolClient;
 }
 
 export async function transitionProposal(
   opts: TransitionProposalOptions,
 ): Promise<ProposalState> {
-  const proposal = await queryOne<{ id: string; status: string }>(
-    'SELECT "id", "status" FROM "Proposal" WHERE "id" = $1',
-    [opts.proposalId],
-  );
+  const proposalSql = `SELECT "id", "status" FROM "Proposal" WHERE "id" = $1${
+    opts.client ? " FOR UPDATE" : ""
+  }`;
+  const proposal = opts.client
+    ? ((await opts.client.query<{ id: string; status: string }>(proposalSql, [
+        opts.proposalId,
+      ])).rows[0] ?? null)
+    : await queryOne<{ id: string; status: string }>(proposalSql, [opts.proposalId]);
   if (!proposal) {
     throw new ProposalTransitionError("?", opts.to, "Proposal not found");
   }
@@ -107,6 +117,7 @@ export async function transitionProposal(
     "Proposal",
     { id: opts.proposalId },
     { status: opts.to, ...(opts.data ?? {}) },
+    { client: opts.client },
   );
 
   await auditTransition({
@@ -118,6 +129,7 @@ export async function transitionProposal(
     to: opts.to,
     reason: opts.reason,
     meta: opts.meta,
+    client: opts.client,
   });
 
   return opts.to;

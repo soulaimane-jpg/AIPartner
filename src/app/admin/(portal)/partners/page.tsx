@@ -7,10 +7,15 @@ import {
   PartnerVerificationQueue,
   type PendingPartner,
 } from "@/components/admin/partner-verification-queue";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPartnersPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const partners = await query<{
     id: string;
     name: string;

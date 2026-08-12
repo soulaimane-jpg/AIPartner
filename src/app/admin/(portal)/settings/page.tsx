@@ -4,6 +4,7 @@ import { listSettings } from "@/lib/settings";
 import { getEnabledPreferenceQuestions } from "@/lib/preferences";
 import { SettingsEditor } from "./settings-editor";
 import { PreferenceQuestionsEditor } from "./preference-questions-editor";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Platform settings · Admin" };
@@ -14,6 +15,10 @@ export const metadata = { title: "Platform settings · Admin" };
  * intake (M3.4). No durations live in code.
  */
 export default async function AdminSettingsPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const [settings, enabledQuestions, allQuestions] = await Promise.all([
     listSettings(),
     getEnabledPreferenceQuestions(),

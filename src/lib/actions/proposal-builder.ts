@@ -17,7 +17,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { defineAction, fail } from "@/lib/actions/define";
-import { query, queryOne, count, insertRow, updateRows } from "@/lib/db";
+import { query, queryOne, insertRow, updateRows, tx } from "@/lib/db";
 import type { ProposalRow } from "@/lib/db/rows";
 import {
   PROPOSAL_SECTIONS,
@@ -237,35 +237,49 @@ export const submitStructuredProposalAction = defineAction({
     }
 
     const submittedAt = new Date();
-    await transitionProposal({
-      proposalId: proposal!.id,
-      to: "SUBMITTED",
-      actor: userActor(ctx.user!.id, ctx.user!.companyId),
-      data: { submittedAt },
-    });
-    await transitionInvite({
-      matchId,
-      to: "PROPOSAL_SUBMITTED",
-      actor: userActor(ctx.user!.id, ctx.user!.companyId),
-    });
-    await satisfyTimer("match", matchId, "proposal_submit");
 
-    // Submission order — visible to the customer later (M6.7).
-    const submissionRank = await count(
-      `SELECT COUNT(*) AS count FROM "Proposal"
-       WHERE "briefId" = $1 AND "submittedAt" IS NOT NULL AND "submittedAt" <= $2`,
-      [proposal!.briefId, submittedAt],
-    );
-
-    // Lead moves to PROPOSALS_IN_REVIEW on the first submission.
-    const leadState = await getLeadState(proposal!.briefId);
-    if (leadState === "SENT_TO_PARTNERS") {
-      await transitionLead({
-        briefId: proposal!.briefId,
-        to: "PROPOSALS_IN_REVIEW",
+    // Submission was five independent writes: proposal → SUBMITTED,
+    // invite → PROPOSAL_SUBMITTED, satisfy T2, maybe advance the lead,
+    // then notify. A crash between any two left a partner believing they
+    // had submitted while the T2 clock kept running, or a submitted
+    // proposal whose invite still looked un-submitted to QC.
+    const submissionRank = await tx(async (client) => {
+      await transitionProposal({
+        proposalId: proposal!.id,
+        to: "SUBMITTED",
         actor: userActor(ctx.user!.id, ctx.user!.companyId),
+        data: { submittedAt },
+        client,
       });
-    }
+      await transitionInvite({
+        matchId,
+        to: "PROPOSAL_SUBMITTED",
+        actor: userActor(ctx.user!.id, ctx.user!.companyId),
+        client,
+      });
+      await satisfyTimer("match", matchId, "proposal_submit", client);
+
+      // Submission order — visible to the customer later (M6.7). Read
+      // inside the transaction so it counts this submission.
+      const ranked = await client.query<{ count: string }>(
+        `SELECT COUNT(*) AS count FROM "Proposal"
+         WHERE "briefId" = $1 AND "submittedAt" IS NOT NULL AND "submittedAt" <= $2`,
+        [proposal!.briefId, submittedAt],
+      );
+
+      // Lead moves to PROPOSALS_IN_REVIEW on the first submission.
+      const leadState = await getLeadState(proposal!.briefId, client);
+      if (leadState === "SENT_TO_PARTNERS") {
+        await transitionLead({
+          briefId: proposal!.briefId,
+          to: "PROPOSALS_IN_REVIEW",
+          actor: userActor(ctx.user!.id, ctx.user!.companyId),
+          client,
+        });
+      }
+
+      return Number(ranked.rows[0]?.count ?? 1);
+    });
 
     await notifyAdmins({
       event: "proposal.submitted_admin",

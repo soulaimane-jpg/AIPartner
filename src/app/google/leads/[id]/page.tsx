@@ -14,6 +14,7 @@ import { LeadStatusBadge } from "@/components/lead-status-badge";
 import { CopyButton } from "@/components/copy-button";
 import { LEAD_MILESTONES, leadMilestoneIndex } from "@/lib/lead-status";
 import { cn } from "@/lib/utils";
+import { requireGoogler } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,10 @@ export default async function LeadDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireGoogler();
+
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.id) redirect(`/auth/sign-in?next=/google/leads/${id}`);

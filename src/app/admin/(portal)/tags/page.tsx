@@ -9,6 +9,7 @@ import { PROMOTION_THRESHOLD } from "@/lib/tags";
 import { TagCurationTable } from "./_components/tag-curation-table";
 import { findMisfiledTags } from "@/lib/tag-misfile";
 import { safeJsonParse } from "@/lib/utils";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,10 @@ export interface AdminTag {
 }
 
 export default async function AdminTagsPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const session = await auth();
   if (session?.user?.role !== "ADMIN") redirect("/");
 

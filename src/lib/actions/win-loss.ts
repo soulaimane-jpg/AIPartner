@@ -18,6 +18,10 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { defineAction, fail } from "@/lib/actions/define";
 import { queryOne, tx } from "@/lib/db";
+import {
+  requireProposalInBrief,
+  requireProposalsInBrief,
+} from "@/lib/actions/tenancy";
 import { WIN_LOSS_REASONS } from "@/lib/schemas/decline-reasons";
 
 const CaptureWinLossInput = z.object({
@@ -46,36 +50,44 @@ export const captureWinLossAction = defineAction({
     );
     if (!brief) fail({ code: "NOT_FOUND", resource: "Brief" });
 
-    // Winner proposal → tag the parent match.
-    const winnerProposal = await queryOne<{ matchId: string }>(
-      'SELECT "matchId" FROM "Proposal" WHERE "id" = $1',
-      [winnerProposalId],
+    // Every proposal id must be re-scoped to the brief the caller was
+    // authorized against. Owning brief A previously let a caller pass
+    // proposal ids from brief B and write verdicts onto another
+    // company's matches — the ownership check above passed, and the
+    // `WHERE "id" = $1` lookups never mentioned the brief.
+    const winnerProposal = await requireProposalInBrief(
+      winnerProposalId,
+      briefId,
     );
-    if (!winnerProposal) {
-      fail({ code: "NOT_FOUND", resource: "Proposal" });
-    }
 
-    // Resolve loser matchIds before entering the transaction.
-    const loserMatches: { matchId: string; reasons: string[]; note: string | null }[] =
-      [];
-    for (const loser of loserReasons) {
-      const p = await queryOne<{ matchId: string }>(
-        'SELECT "matchId" FROM "Proposal" WHERE "id" = $1',
-        [loser.proposalId],
-      );
-      if (!p) continue;
-      loserMatches.push({
-        matchId: p.matchId,
-        reasons: loser.reasons,
-        note: loser.note ?? null,
+    const loserIds = loserReasons.map((l) => l.proposalId);
+    if (loserIds.includes(winnerProposalId)) {
+      fail({
+        code: "INVALID_INPUT",
+        issues: [
+          {
+            path: "loserReasons",
+            message: "The winning proposal cannot also be recorded as a loss.",
+          },
+        ],
       });
     }
+    // All-or-nothing: the original skipped unresolvable ids with
+    // `continue`, which is exactly what made the cross-tenant write
+    // silent.
+    const loserProposals = await requireProposalsInBrief(loserIds, briefId);
+
+    const loserMatches = loserReasons.map((loser) => ({
+      matchId: loserProposals.get(loser.proposalId)!.matchId,
+      reasons: loser.reasons,
+      note: loser.note ?? null,
+    }));
 
     await tx(async (client) => {
       await client.query(
         `UPDATE "Match" SET "winLossReasons" = $2, "updatedAt" = NOW() WHERE "id" = $1`,
         [
-          winnerProposal!.matchId,
+          winnerProposal.matchId,
           JSON.stringify({
             outcome: "won",
             capturedAt: new Date().toISOString(),

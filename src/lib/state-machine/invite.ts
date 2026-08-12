@@ -18,6 +18,7 @@
  */
 
 import "server-only";
+import type { PoolClient } from "pg";
 import { queryOne, updateRows } from "@/lib/db";
 import { auditTransition, type TransitionActor } from "./transition";
 
@@ -105,15 +106,24 @@ export interface TransitionInviteOptions {
   meta?: Record<string, unknown>;
   /** Extra Match columns to set atomically with the status write. */
   data?: Record<string, unknown>;
+  /**
+   * Join a caller's transaction. The row is locked FOR UPDATE so the
+   * read-then-write check becomes atomic under concurrency.
+   */
+  client?: PoolClient;
 }
 
 export async function transitionInvite(
   opts: TransitionInviteOptions,
 ): Promise<InviteState> {
-  const match = await queryOne<{ id: string; status: string }>(
-    'SELECT "id", "status" FROM "Match" WHERE "id" = $1',
-    [opts.matchId],
-  );
+  const matchSql = `SELECT "id", "status" FROM "Match" WHERE "id" = $1${
+    opts.client ? " FOR UPDATE" : ""
+  }`;
+  const match = opts.client
+    ? ((await opts.client.query<{ id: string; status: string }>(matchSql, [
+        opts.matchId,
+      ])).rows[0] ?? null)
+    : await queryOne<{ id: string; status: string }>(matchSql, [opts.matchId]);
   if (!match) throw new InviteTransitionError("?", opts.to, "Match not found");
 
   const from = (
@@ -130,6 +140,7 @@ export async function transitionInvite(
     "Match",
     { id: opts.matchId },
     { status: opts.to, ...(opts.data ?? {}) },
+    { client: opts.client },
   );
 
   await auditTransition({
@@ -141,6 +152,7 @@ export async function transitionInvite(
     to: opts.to,
     reason: opts.reason,
     meta: opts.meta,
+    client: opts.client,
   });
 
   return opts.to;

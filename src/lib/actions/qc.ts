@@ -339,70 +339,85 @@ export const adminBuildComparisonAction = defineAction({
       });
     }
 
-    const view = await insertRow<{ id: string }>(
-      "ComparisonView",
-      { briefId, status: "draft" },
-      {
-        // No-op update so RETURNING gives us the existing row.
-        onConflict: `("briefId") DO UPDATE SET "briefId" = EXCLUDED."briefId"`,
-      },
-    );
-
-    let rank = 0;
-    for (const proposal of proposals) {
-      rank++;
-      const label =
-        proposal.matchPlaceholderLabel ?? proposal.anonPlaceholderLabel;
-
-      const column = await queryOne<{ id: string }>(
-        `SELECT "id" FROM "ComparisonColumn"
-         WHERE "viewId" = $1 AND "matchId" = $2
-         LIMIT 1`,
-        [view.id, proposal.matchId],
+    // The whole grid is built in one transaction. Row-at-a-time inserts
+    // meant a failure part-way through left a ComparisonView with some
+    // partners' columns present and others missing — and that view is
+    // what the customer compares on, so a partial grid silently biases
+    // the decision toward whoever happened to be written first.
+    await tx(async (client) => {
+      const view = await insertRow<{ id: string }>(
+        "ComparisonView",
+        { briefId, status: "draft" },
+        {
+          // No-op update so RETURNING gives us the existing row.
+          onConflict: `("briefId") DO UPDATE SET "briefId" = EXCLUDED."briefId"`,
+          client,
+        },
       );
-      if (column) {
-        await updateRows(
-          "ComparisonColumn",
-          { id: column.id },
-          { submissionRank: rank, placeholderLabel: label },
-        );
-      } else {
-        await insertRow("ComparisonColumn", {
-          viewId: view.id,
-          matchId: proposal.matchId,
-          placeholderLabel: label,
-          submissionRank: rank,
-        });
-      }
 
-      // Cells from the approved anonymized sections.
-      let sections: Record<string, string> = {};
-      try {
-        sections = JSON.parse(proposal.anonContent) as Record<string, string>;
-      } catch {
-        sections = {};
-      }
-      for (const [sectionKey, detail] of Object.entries(sections)) {
-        const summary =
-          detail.length > 280 ? `${detail.slice(0, 277)}…` : detail;
-        await insertRow(
-          "ComparisonCell",
-          {
-            viewId: view.id,
-            placeholderLabel: label,
-            sectionKey,
-            summary,
-            detail,
-          },
-          {
-            onConflict: `("viewId", "placeholderLabel", "sectionKey") DO UPDATE SET
-              "summary" = EXCLUDED."summary",
-              "detail" = EXCLUDED."detail",
-              "updatedAt" = EXCLUDED."updatedAt"`,
-          },
+      let rank = 0;
+      for (const proposal of proposals) {
+        rank++;
+        const label =
+          proposal.matchPlaceholderLabel ?? proposal.anonPlaceholderLabel;
+
+        const existing = await client.query<{ id: string }>(
+          `SELECT "id" FROM "ComparisonColumn"
+           WHERE "viewId" = $1 AND "matchId" = $2
+           LIMIT 1`,
+          [view.id, proposal.matchId],
         );
+        const column = existing.rows[0] ?? null;
+        if (column) {
+          await updateRows(
+            "ComparisonColumn",
+            { id: column.id },
+            { submissionRank: rank, placeholderLabel: label },
+            { client },
+          );
+        } else {
+          await insertRow(
+            "ComparisonColumn",
+            {
+              viewId: view.id,
+              matchId: proposal.matchId,
+              placeholderLabel: label,
+              submissionRank: rank,
+            },
+            { client },
+          );
+        }
+
+        // Cells from the approved anonymized sections.
+        let sections: Record<string, string> = {};
+        try {
+          sections = JSON.parse(proposal.anonContent) as Record<string, string>;
+        } catch {
+          sections = {};
+        }
+        for (const [sectionKey, detail] of Object.entries(sections)) {
+          const summary =
+            detail.length > 280 ? `${detail.slice(0, 277)}…` : detail;
+          await insertRow(
+            "ComparisonCell",
+            {
+              viewId: view.id,
+              placeholderLabel: label,
+              sectionKey,
+              summary,
+              detail,
+            },
+            {
+              onConflict: `("viewId", "placeholderLabel", "sectionKey") DO UPDATE SET
+                "summary" = EXCLUDED."summary",
+                "detail" = EXCLUDED."detail",
+                "updatedAt" = EXCLUDED."updatedAt"`,
+              client,
+            },
+          );
+        }
       }
-    }
+    });
 
     revalidatePath(`/admin/briefs/${briefId}`);
     return { columns: proposals.length };

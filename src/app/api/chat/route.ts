@@ -12,6 +12,8 @@ import {
 import { computeCompletion, computeCompletionBreakdown } from "@/lib/brief";
 import { getBriefCapabilities } from "@/lib/workspace-access";
 import { buildBriefSystemPrompt } from "@/lib/brief-prompts";
+import { fenceUntrusted, withUntrustedRule } from "@/lib/ai/untrusted";
+import { captureError, captureWarning } from "@/lib/observability";
 import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
@@ -50,6 +52,13 @@ const STRING_FIELDS = new Set([
  */
 const MAX_TOTAL_ATTACHMENT_CHARS = 120_000;
 
+/**
+ * Wall-clock budget for the streamed reply. Longer than the 30s used for
+ * one-shot extraction calls because this streams a conversational answer,
+ * but still bounded so a hung upstream can't pin a request slot.
+ */
+const CHAT_STREAM_TIMEOUT_MS = 120_000;
+
 function buildAttachmentContext(
   attachments: ReadonlyArray<{
     filename: string;
@@ -81,10 +90,13 @@ function buildAttachmentContext(
     }
     const slice = a.extractedText.slice(0, budget);
     budget -= slice.length;
+    // Document text is uploaded by the customer and extracted verbatim,
+    // so it is a prompt-injection vector into a channel that writes brief
+    // fields. Fence it as data.
     sections.push(
-      `### File: ${a.filename}\n${slice}${
-        slice.length < a.extractedText.length ? "\n…[truncated]" : ""
-      }`,
+      `### File: ${a.filename}\n` +
+        fenceUntrusted(slice, { source: `uploaded file: ${a.filename}` }) +
+        (slice.length < a.extractedText.length ? "\n…[truncated]" : ""),
     );
   }
 
@@ -213,25 +225,38 @@ export async function POST(req: NextRequest) {
     [briefId],
   );
 
+  const attachmentContext = buildAttachmentContext(attachments);
   const systemWithContext =
-    buildBriefSystemPrompt(brief) +
+    // The trust-boundary rule is only added when there is fenced content
+    // to explain, so a plain conversation keeps the shorter prompt.
+    (attachmentContext
+      ? withUntrustedRule(buildBriefSystemPrompt(brief))
+      : buildBriefSystemPrompt(brief)) +
     `\n\n# CURRENT BRIEF STATE (what you've already captured)\n` +
     JSON.stringify(known, null, 2) +
     `\n\nPick up from here — don't re-ask what's known.` +
     buildProgressBlock(brief) +
-    buildAttachmentContext(attachments);
+    attachmentContext;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
       let fullReply = "";
+      // No timeout meant a hung upstream held the stream (and a Cloud Run
+      // request slot) open until the platform killed it, with no error
+      // shown to the user.
+      const abort = new AbortController();
+      const streamTimer = setTimeout(() => abort.abort(), CHAT_STREAM_TIMEOUT_MS);
       try {
-        const response = await anthropic.messages.stream({
-          model: CLAUDE_MODEL,
-          max_tokens: 4096,
-          system: systemWithContext,
-          messages: history,
-        });
+        const response = await anthropic.messages.stream(
+          {
+            model: CLAUDE_MODEL,
+            max_tokens: 4096,
+            system: systemWithContext,
+            messages: history,
+          },
+          { signal: abort.signal },
+        );
 
         // Progressive stripping of structured tags. We don't know which tag
         // (if any) is forming inside the trailing buffer, so we only emit
@@ -311,13 +336,42 @@ export async function POST(req: NextRequest) {
         // the per-answer rating (attached to the user message), and the
         // structured brief_update patch.
         const visibleReply = stripBriefUpdate(fullReply);
-        const patch = parseBriefUpdate(fullReply);
+        const extraction = parseBriefUpdate(fullReply);
         const rating = parseAnswerRating(fullReply);
+
+        // A failed extraction used to become `{}` — silently. The user
+        // saw a friendly reply and an unchanged brief, with nothing
+        // logged. Tell them, and report it so the rate is visible.
+        let extractionNotice = "";
+        if (!extraction.ok && extraction.failure.code !== "absent") {
+          captureWarning("brief_update extraction discarded", {
+            scope: "chat",
+            briefId,
+            failure: extraction.failure.code,
+            issues:
+              extraction.failure.code === "schema_mismatch"
+                ? extraction.failure.issues
+                : undefined,
+          });
+          extractionNotice =
+            "\n\n_I couldn't save that to your brief automatically — " +
+            "please check the Overview and add anything that's missing._";
+          controller.enqueue(encoder.encode(extractionNotice));
+        }
+        if (extraction.ok && extraction.droppedKeys.length > 0) {
+          // Unknown keys are model drift or an injection attempt via an
+          // uploaded document; either way they never reach the patch.
+          captureWarning("brief_update contained unknown keys", {
+            scope: "chat",
+            briefId,
+            droppedKeys: extraction.droppedKeys,
+          });
+        }
 
         await insertRow("ChatMessage", {
           briefId,
           role: "assistant",
-          content: visibleReply,
+          content: visibleReply + extractionNotice,
         });
 
         if (rating) {
@@ -328,7 +382,9 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        await applyBriefPatch(briefId, patch);
+        if (extraction.ok) {
+          await applyBriefPatch(briefId, extraction.patch);
+        }
 
         revalidatePath(`/briefs/${briefId}/builder`);
         revalidatePath(`/briefs/${briefId}/preview`);
@@ -336,11 +392,13 @@ export async function POST(req: NextRequest) {
 
         controller.close();
       } catch (err) {
-        console.error("Claude chat error:", err);
+        captureError(err, { scope: "chat", briefId });
         const errMsg =
           "\n\n_Sorry — I hit a connection issue. Please try again in a moment._";
         controller.enqueue(encoder.encode(errMsg));
         controller.close();
+      } finally {
+        clearTimeout(streamTimer);
       }
     },
   });

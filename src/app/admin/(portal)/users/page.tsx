@@ -2,10 +2,15 @@ import { query } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { timeAgo, cn } from "@/lib/utils";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const users = await query<{
     id: string;
     name: string | null;

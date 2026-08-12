@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { timeAgo, cn } from "@/lib/utils";
 import { STAGE_ORDER } from "@/lib/constants";
 import { CronHealthPanel } from "@/components/admin/cron-health-panel";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,10 @@ const STAGE_BAR_COLORS = [
 ];
 
 export default async function AdminOverviewPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const [
     briefCount,
     activeBriefs,

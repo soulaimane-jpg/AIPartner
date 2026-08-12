@@ -14,6 +14,7 @@ import "server-only";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import { anthropic, CLAUDE_MODEL } from "@/lib/claude";
+import { withUntrustedRule } from "@/lib/ai/untrusted";
 
 /** Tighten the prompt for a retry — appended after a parse failure. */
 const RETRY_DIRECTIVE =
@@ -36,6 +37,14 @@ export interface ParseLlmJsonOptions<Schema extends z.ZodTypeAny> {
   temperature?: number;
   /** Tag for the failure log so we can group by call-site. */
   tag: string;
+  /** Per-call wall-clock budget; defaults to `LLM_TIMEOUT_MS`. */
+  timeoutMs?: number;
+  /**
+   * Set when `user` contains third-party text fenced with
+   * `fenceUntrusted()`. Appends the trust-boundary rule to the system
+   * prompt so the model is told what the markers mean.
+   */
+  untrustedInput?: boolean;
 }
 
 export type ParseLlmJsonResult<T> =
@@ -64,18 +73,40 @@ function isolateJson(raw: string): string {
   return raw;
 }
 
+/**
+ * Wall-clock budget for a single model call.
+ *
+ * There was no timeout on any model call, so a hung upstream held the
+ * Server Action open until the platform killed the request — burning a
+ * Cloud Run request slot and giving the user a blank failure with no
+ * error. Two attempts share this budget per call, not in total.
+ */
+export const LLM_TIMEOUT_MS = 30_000;
+
 async function callOnce(
   opts: ParseLlmJsonOptions<z.ZodTypeAny>,
   extraSystem?: string,
 ): Promise<string> {
-  const msg = await anthropic.messages.create({
-    model: opts.model ?? CLAUDE_MODEL,
-    max_tokens: opts.maxTokens ?? 1500,
-    temperature: opts.temperature ?? 0.1,
-    system: extraSystem ? `${opts.system}\n\n${extraSystem}` : opts.system,
-    messages: [{ role: "user", content: opts.user }],
-  });
-  return extractText(msg);
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(),
+    opts.timeoutMs ?? LLM_TIMEOUT_MS,
+  );
+  try {
+    const msg = await anthropic.messages.create(
+      {
+        model: opts.model ?? CLAUDE_MODEL,
+        max_tokens: opts.maxTokens ?? 1500,
+        temperature: opts.temperature ?? 0.1,
+        system: extraSystem ? `${opts.system}\n\n${extraSystem}` : opts.system,
+        messages: [{ role: "user", content: opts.user }],
+      },
+      { signal: controller.signal },
+    );
+    return extractText(msg);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
@@ -85,10 +116,17 @@ async function callOnce(
 export async function parseLlmJson<Schema extends z.ZodTypeAny>(
   opts: ParseLlmJsonOptions<Schema>,
 ): Promise<ParseLlmJsonResult<z.infer<Schema>>> {
+  const effective: ParseLlmJsonOptions<Schema> = opts.untrustedInput
+    ? { ...opts, system: withUntrustedRule(opts.system) }
+    : opts;
+
   for (let attempt = 1; attempt <= 2; attempt++) {
     let raw: string;
     try {
-      raw = await callOnce(opts, attempt === 2 ? RETRY_DIRECTIVE : undefined);
+      raw = await callOnce(
+        effective,
+        attempt === 2 ? RETRY_DIRECTIVE : undefined,
+      );
     } catch (err) {
       return {
         ok: false,
@@ -118,7 +156,7 @@ export async function parseLlmJson<Schema extends z.ZodTypeAny>(
       continue;
     }
 
-    const parsed = opts.schema.safeParse(json);
+    const parsed = effective.schema.safeParse(json);
     if (parsed.success) {
       return { ok: true, data: parsed.data, attempts: attempt };
     }

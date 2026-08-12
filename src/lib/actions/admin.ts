@@ -16,6 +16,7 @@ import { revalidatePath } from "next/cache";
 import crypto from "node:crypto";
 import { z } from "zod";
 import { defineAction, fail } from "@/lib/actions/define";
+import { requireMatchesInBrief } from "@/lib/actions/tenancy";
 import { requireStepUp } from "@/lib/step-up";
 import { queryOne, exec, insertRow, updateRows, tx } from "@/lib/db";
 import type { ProjectBriefRow } from "@/lib/db/rows";
@@ -430,6 +431,12 @@ export const narrowShortlistAction = defineAction({
     );
     if (!brief) fail({ code: "NOT_FOUND", resource: "Brief" });
 
+    // RBAC authorized the caller against `briefId` (isOwnBrief), but the
+    // match ids arrive from the client. Re-scope every one of them to
+    // that brief before writing — otherwise owning brief A lets a
+    // caller mark another company's matches IN_FINAL_THREE.
+    await requireMatchesInBrief(finalThreeMatchIds, briefId);
+
     await tx(async (client) => {
       await client.query(
         `UPDATE "Match" SET "status" = 'SHORTLISTED', "customerPriority" = NULL,
@@ -442,8 +449,8 @@ export const narrowShortlistAction = defineAction({
         await client.query(
           `UPDATE "Match" SET "status" = 'IN_FINAL_THREE',
              "customerPriority" = $2, "updatedAt" = NOW()
-           WHERE "id" = $1`,
-          [finalThreeMatchIds[i], i + 1],
+           WHERE "id" = $1 AND "briefId" = $3`,
+          [finalThreeMatchIds[i], i + 1, briefId],
         );
       }
     });

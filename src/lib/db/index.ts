@@ -18,7 +18,14 @@ import "server-only";
 import { Pool, types, type PoolClient, type QueryResultRow } from "pg";
 import { randomBytes } from "crypto";
 
-// TIMESTAMP(3) columns are naive UTC — parse them as UTC, not local.
+// Naive TIMESTAMP columns carry UTC by convention, so parse them as UTC
+// rather than as the server's local time.
+//
+// After `db/migrations/20260812_timestamptz.sql` almost every column is
+// `timestamptz`, which pg parses correctly on its own (different type OID),
+// making this a no-op for those. It stays because it is what keeps any
+// remaining — or newly reintroduced — naive column from being read as local
+// time, which would silently shift every SLA deadline by the host offset.
 types.setTypeParser(types.builtins.TIMESTAMP, (v) => new Date(`${v}Z`));
 
 function buildPool(): Pool {

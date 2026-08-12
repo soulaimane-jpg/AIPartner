@@ -5,11 +5,16 @@ import { auth } from "@/lib/auth";
 import { getGooglerAttribution } from "@/lib/googler-attribution";
 import { LEAD_STATE_LABELS } from "@/lib/constants";
 import { formatCurrency, timeAgo } from "@/lib/utils";
+import { requireGoogler } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Referral impact · Google Portal" };
 
 export default async function GooglerAttributionPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireGoogler();
+
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/sign-in?next=/google/attribution");
 

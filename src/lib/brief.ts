@@ -140,6 +140,16 @@ export function computeCompletion(b: BriefLike): number {
   return computeCompletionBreakdown(b).total;
 }
 
+/**
+ * Minimum completion required to submit a brief to triage.
+ *
+ * Single source of truth: the preview page disables the button on this
+ * value and `submitBriefAction` rejects on it. Previously only the UI
+ * enforced it, so a direct Server Action call could push a 0% brief
+ * into the admin queue.
+ */
+export const MIN_SUBMIT_COMPLETION = 40;
+
 export function stageIndex(stage: BriefStage): number {
   const idx = (STAGE_ORDER as readonly string[]).indexOf(stage);
   return idx === -1 ? 0 : idx;

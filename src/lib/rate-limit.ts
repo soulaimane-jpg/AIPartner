@@ -33,7 +33,13 @@ export interface RateLimitResult {
 export async function checkRateLimit(
   input: RateLimitInput,
 ): Promise<RateLimitResult> {
-  if (env.RATE_LIMIT_BACKEND === "memory") return checkMemory(input);
+  // `memory` is process-local and therefore useless behind more than one
+  // instance; `src/env.ts` refuses to boot production with it set. This
+  // second check keeps the invariant next to the code that depends on it.
+  if (env.RATE_LIMIT_BACKEND === "memory") {
+    if (env.NODE_ENV === "production") return checkDb(input);
+    return checkMemory(input);
+  }
   // "redis" support intentionally not yet wired — fall through to DB.
   return checkDb(input);
 }

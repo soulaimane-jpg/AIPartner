@@ -18,8 +18,6 @@
  * trust the client to gatekeep this.
  */
 
-import "node:crypto";
-import { createHash } from "node:crypto";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { defineAction, fail } from "@/lib/actions/define";
@@ -30,6 +28,11 @@ import {
   RiskRadarReportV1,
   RISK_RADAR_VERSION,
 } from "@/lib/schemas/ai/risk-radar";
+import {
+  hashBriefForRadar,
+  RADAR_BRIEF_COLUMNS,
+  type RadarBriefFields,
+} from "@/lib/risk-radar";
 
 const RISK_RADAR_SYSTEM = `You are AI Partner's pre-submit reviewer.
 
@@ -73,35 +76,6 @@ Return ONLY a single JSON object — no prose, no code fences — matching this 
 }
 
 Return at most 8 findings. Empty array is fine if the brief is solid.`;
-
-/** Stable hash of the brief fields the radar evaluates. */
-function hashBriefForRadar(b: {
-  title: string;
-  executiveSummary: string | null;
-  scopeRequirements: string | null;
-  integrationPoints: string | null;
-  dataSources: string | null;
-  successCriteria: string | null;
-  targetGoLive: string | null;
-  budgetRange: string | null;
-  preferredLocation: string | null;
-  requiredCertifications: string | null;
-}): string {
-  const payload = JSON.stringify({
-    title: b.title,
-    s: b.executiveSummary,
-    r: b.scopeRequirements,
-    i: b.integrationPoints,
-    d: b.dataSources,
-    c: b.successCriteria,
-    t: b.targetGoLive,
-    bu: b.budgetRange,
-    l: b.preferredLocation,
-    cr: b.requiredCertifications,
-    v: RISK_RADAR_VERSION,
-  });
-  return createHash("sha256").update(payload).digest("hex").slice(0, 32);
-}
 
 function buildUserMessage(b: {
   title: string;
@@ -151,23 +125,11 @@ export const runRiskRadarAction = defineAction({
   permission: "brief.update",
   rateLimit: { scope: "risk-radar.run", limit: 12, windowSec: 600 },
   handler: async ({ briefId, force }, ctx) => {
-    const brief = await queryOne<{
-      id: string;
-      title: string;
-      executiveSummary: string | null;
-      scopeRequirements: string | null;
-      integrationPoints: string | null;
-      dataSources: string | null;
-      successCriteria: string | null;
-      targetGoLive: string | null;
-      budgetRange: string | null;
-      preferredLocation: string | null;
-      requiredCertifications: string | null;
-    }>(
-      `SELECT "id", "title", "executiveSummary", "scopeRequirements",
-              "integrationPoints", "dataSources", "successCriteria",
-              "targetGoLive", "budgetRange", "preferredLocation",
-              "requiredCertifications"
+    // One column list shared with the submit gate and the preview page.
+    // If these three read different fields, the hashes disagree and every
+    // report looks permanently stale — i.e. nobody can ever submit.
+    const brief = await queryOne<RadarBriefFields & { id: string }>(
+      `SELECT "id", ${RADAR_BRIEF_COLUMNS}
        FROM "ProjectBrief" WHERE "id" = $1`,
       [briefId],
     );
@@ -203,11 +165,26 @@ export const runRiskRadarAction = defineAction({
       system: RISK_RADAR_SYSTEM,
       user: buildUserMessage(brief!),
       tag: "risk-radar",
+      // Brief fields can carry text extracted from uploaded documents.
+      untrustedInput: true,
       maxTokens: 1800,
       temperature: 0.1,
     });
 
     if (!result.ok) {
+      // Persist the failure. Previously nothing was written, so an
+      // Anthropic outage silently removed the pre-submit risk gate and
+      // left no trace that it had never run. A `failed` report makes
+      // the gap visible to the submit gate and to admins.
+      await insertRow("RiskRadarReport", {
+        briefId,
+        briefHash,
+        overall: "failed",
+        findings: "[]",
+        promptVer: RISK_RADAR_VERSION,
+        failureReason: result.error.code,
+      });
+      revalidatePath(`/briefs/${briefId}/preview`);
       fail({
         code: "LLM_FAILURE",
         retryable: result.error.code === "LLM_TRANSPORT",

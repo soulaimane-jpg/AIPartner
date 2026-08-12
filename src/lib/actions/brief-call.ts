@@ -20,6 +20,7 @@ import { revalidatePath } from "next/cache";
 import { defineAction, fail } from "@/lib/actions/define";
 import { query, queryOne, insertRow, updateRows } from "@/lib/db";
 import { parseLlmJson } from "@/lib/ai/parse";
+import { fenceUntrusted } from "@/lib/ai/untrusted";
 import {
   CALL_BRIEF_SYSTEM,
   CallBriefExtractionV1,
@@ -122,10 +123,18 @@ export const adminAttachTranscriptAction = defineAction({
     const result = await parseLlmJson({
       schema: CallBriefExtractionV1,
       system: CALL_BRIEF_SYSTEM,
-      user: `# Call transcript\n\n${transcript.slice(0, 150_000)}`,
+      // A transcript is third-party speech; anything in it that sounds
+      // like an instruction is content, not a directive.
+      user: `# Call transcript\n\n${fenceUntrusted(transcript, {
+        source: "call transcript",
+        maxChars: 150_000,
+      })}`,
+      untrustedInput: true,
       tag: "call-brief-extraction",
       maxTokens: 4000,
       temperature: 0.1,
+      // Transcripts are long; give this one more room than the default.
+      timeoutMs: 90_000,
     });
     if (!result.ok) {
       fail({

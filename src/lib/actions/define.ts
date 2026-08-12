@@ -12,8 +12,11 @@
  *   5. **Handler execution.** Wrapped in try/catch.
  *   6. **Output validation.** Optional Zod schema for the return value
  *      — guards downstream consumers against handler drift.
- *   7. **Audit log.** Successful runs emit a `kind: action.<name>` event
- *      with redacted payload. Failures log via Sentry once wired.
+ *   7. **Audit log + error reporting.** Successful runs emit a
+ *      `kind: action.<name>` event with redacted payload. INTERNAL and
+ *      LLM_FAILURE errors are reported to Sentry via
+ *      `@/lib/observability`; expected failures (FORBIDDEN, CONFLICT,
+ *      INVALID_INPUT) are business outcomes and are not.
  *
  * Returning a discriminated `{ ok, data | error }` is deliberate — UI
  * code can pattern-match without try/catch and `<form action>` callers
@@ -31,6 +34,7 @@ import { can } from "@/lib/rbac/can";
 import type { Permission } from "@/lib/rbac/permissions";
 import type { ActionContext } from "@/lib/rbac/types";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { captureError } from "@/lib/observability";
 import {
   ActionError,
   ActionFailure,
@@ -155,10 +159,25 @@ export function defineAction<I extends z.ZodTypeAny, O>(
           ? err.error
           : toActionError(err, { traceId: ctx.traceId ?? undefined });
 
-      // INTERNAL errors are logged loudly; expected ones (FORBIDDEN, etc.) are not.
-      if (error.code === "INTERNAL") {
-        // eslint-disable-next-line no-console
-        console.error(`[action.${opts.name}] internal error`, err);
+      // INTERNAL errors are reported; expected ones (FORBIDDEN, CONFLICT,
+      // INVALID_INPUT…) are business outcomes, not faults, and would
+      // drown the signal.
+      //
+      // This is guarantee #7 in the header, which claimed Sentry
+      // reporting "once wired" and then only console.error'd. Server
+      // Actions are where the business logic lives, so every failure in
+      // the application was invisible in production while API-route and
+      // rendering errors were captured.
+      if (error.code === "INTERNAL" || error.code === "LLM_FAILURE") {
+        captureError(err, {
+          scope: "action",
+          action: opts.name,
+          userId: ctx.user?.id,
+          companyId: ctx.user?.companyId ?? undefined,
+          traceId: ctx.traceId ?? undefined,
+          // Redacted by captureError; useful for reproducing.
+          input: parsed.data,
+        });
       }
 
       // Audit failures too — discoverability matters.

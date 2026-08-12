@@ -19,10 +19,15 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SubProcessorForm } from "./_components/sub-processor-form";
 import { RetireButton } from "./_components/retire-button";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSubProcessorsPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const session = await auth();
   if (session?.user?.role !== "ADMIN") redirect("/");
 

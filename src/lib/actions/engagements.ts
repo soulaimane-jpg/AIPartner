@@ -24,7 +24,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { defineAction, fail } from "@/lib/actions/define";
-import { exec, insertRow, query, queryOne, updateRows } from "@/lib/db";
+import { exec, insertRow, query, queryOne, tx, updateRows } from "@/lib/db";
 import { getLeadState, transitionLead } from "@/lib/state-machine/lead";
 import { userActor } from "@/lib/state-machine/transition";
 import { notify, notifyAdmins, notifyCompanyUsers } from "@/lib/notify";
@@ -179,18 +179,28 @@ export const acceptEngagementAction = defineAction({
       });
     }
 
-    await updateRows(
-      "Engagement",
-      { id: engagement!.id },
-      {
-        status: "ACTIVE",
-        acceptedAt: new Date(),
-        acceptedById: ctx.user!.id,
-        acceptedByName: data.acceptedByName,
-        acceptedIp: data.ipAddress ?? null,
-        acceptedUa: data.userAgent ?? null,
-      },
+    // Acceptance is the business event, so the row is claimed with a
+    // compare-and-swap on the status we validated. Two clicks (or two
+    // tabs) previously both passed the PENDING_ACCEPTANCE check and both
+    // wrote acceptance evidence, the second overwriting the first.
+    const claimed = await exec(
+      `UPDATE "Engagement"
+          SET "status" = 'ACTIVE', "acceptedAt" = NOW(), "acceptedById" = $2,
+              "acceptedByName" = $3, "acceptedIp" = $4, "acceptedUa" = $5,
+              "updatedAt" = NOW()
+        WHERE "id" = $1 AND "status" = 'PENDING_ACCEPTANCE'`,
+      [
+        engagement!.id,
+        ctx.user!.id,
+        data.acceptedByName,
+        data.ipAddress ?? null,
+        data.userAgent ?? null,
+      ],
     );
+    if (claimed === 0) {
+      // Someone else accepted between our read and our write.
+      return { ok: true as const, alreadyAccepted: true };
+    }
 
     const partnerUsers = await query<{ id: string }>(
       'SELECT "id" FROM "User" WHERE "companyId" = $1',
@@ -256,7 +266,19 @@ export const upsertMilestoneAction = defineAction({
     };
 
     if (data.milestoneId) {
-      await updateRows("EngagementMilestone", { id: data.milestoneId }, values);
+      // Scope the update to the engagement we just authorized against.
+      // Keying on `id` alone let a milestone belonging to a different
+      // engagement be silently reparented (`values` rewrites
+      // `engagementId`). Admin-only, so not a tenancy hole — but a
+      // data-integrity one.
+      const updated = await updateRows(
+        "EngagementMilestone",
+        { id: data.milestoneId, engagementId: data.engagementId },
+        values,
+      );
+      if (updated.length === 0) {
+        fail({ code: "NOT_FOUND", resource: "Milestone" });
+      }
     } else {
       await insertRow("EngagementMilestone", values);
     }
@@ -298,21 +320,29 @@ export const markEngagementDeliveredAction = defineAction({
       });
     }
 
-    await exec(
-      `UPDATE "Engagement" SET "status" = 'DELIVERED', "deliveredAt" = NOW(), "updatedAt" = NOW()
-       WHERE "id" = $1`,
-      [engagementId],
-    );
+    // Delivery and the lead's terminal hop commit together — a brief
+    // marked delivered while the lead never reached COMPLETED would
+    // silently drop out of every pipeline report.
+    await tx(async (client) => {
+      const delivered = await client.query(
+        `UPDATE "Engagement"
+            SET "status" = 'DELIVERED', "deliveredAt" = NOW(), "updatedAt" = NOW()
+          WHERE "id" = $1 AND "status" = 'ACTIVE'`,
+        [engagementId],
+      );
+      if (delivered.rowCount === 0) return;
 
-    const state = await getLeadState(engagement!.briefId);
-    if (state === "MEETINGS_SCHEDULED" || state === "DROPPED_OFF") {
-      await transitionLead({
-        briefId: engagement!.briefId,
-        to: "COMPLETED",
-        actor: userActor(ctx.user!.id, ctx.user!.companyId),
-        reason: "Engagement delivered",
-      });
-    }
+      const state = await getLeadState(engagement!.briefId, client);
+      if (state === "MEETINGS_SCHEDULED" || state === "DROPPED_OFF") {
+        await transitionLead({
+          briefId: engagement!.briefId,
+          to: "COMPLETED",
+          actor: userActor(ctx.user!.id, ctx.user!.companyId),
+          reason: "Engagement delivered",
+          client,
+        });
+      }
+    });
 
     await notifyCompanyUsers(engagement!.companyId, {
       event: "engagement.delivered",

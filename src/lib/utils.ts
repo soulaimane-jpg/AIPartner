@@ -5,11 +5,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(cents?: number | null) {
+/** Platform quoting currency — matches `Engagement.currency`'s default. */
+export const DEFAULT_CURRENCY = "EUR";
+
+/**
+ * Render integer cents as money.
+ *
+ * The currency argument is not cosmetic: this used to hardcode `USD`
+ * while every stored amount is EUR (`Engagement.currency` defaults to
+ * 'EUR', and the admin deal-report copy prints '€'), so contract values
+ * were being shown to customers and partners with the wrong symbol.
+ */
+export function formatCurrency(
+  cents?: number | null,
+  currency: string = DEFAULT_CURRENCY,
+) {
   if (cents == null) return "—";
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-IE", {
     style: "currency",
-    currency: "USD",
+    currency,
     maximumFractionDigits: 0,
   }).format(cents / 100);
 }

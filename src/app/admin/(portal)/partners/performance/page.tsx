@@ -3,6 +3,7 @@ import { BarChart3 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { listPartnerOps } from "@/lib/partner-ops";
 import { PartnerOpsTable } from "@/components/admin/partner-ops-table";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Partner ops · Admin · AI Partner" };
@@ -18,6 +19,10 @@ export const metadata = { title: "Partner ops · Admin · AI Partner" };
  * partners deserve more inbound briefs.
  */
 export default async function PartnerOpsPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") {
     redirect("/admin/login");

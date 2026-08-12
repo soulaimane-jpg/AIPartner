@@ -6,11 +6,16 @@ import { Button } from "@/components/ui/button";
 import { getGooglerLeads } from "@/lib/lead-query";
 import { LeadStatusBadge } from "@/components/lead-status-badge";
 import { timeAgo } from "@/lib/utils";
+import { requireGoogler } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Your leads · Google Portal" };
 
 export default async function GooglerLeadsListPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireGoogler();
+
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/sign-in?next=/google/leads");
 

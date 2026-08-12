@@ -18,6 +18,7 @@ import { getLeadState } from "@/lib/state-machine/lead";
 import { loadThreadsForAudience } from "@/lib/serializers/threads";
 import { ClarificationThreadView } from "@/components/clarifications/thread-view";
 import { TriageActions } from "./triage-actions";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Brief triage · AI Partner" };
@@ -33,6 +34,10 @@ export default async function AdminBriefTriagePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const { id } = await params;
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") {

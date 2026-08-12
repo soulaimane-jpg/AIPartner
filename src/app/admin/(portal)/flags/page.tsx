@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { FlagFormCard } from "./_components/flag-form";
 import { FlagToggle } from "./_components/flag-toggle";
 import { DeleteFlagButton } from "./_components/delete-flag-button";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,10 @@ function fmtDate(d: Date | null | undefined): string {
 }
 
 export default async function AdminFlagsPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const session = await auth();
   if (session?.user?.role !== "ADMIN") redirect("/");
 

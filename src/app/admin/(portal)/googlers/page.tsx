@@ -2,10 +2,15 @@ import { Sparkles } from "lucide-react";
 import { query } from "@/lib/db";
 import { timeAgo } from "@/lib/utils";
 import { AdminCreateGoogler } from "@/components/admin-create-googler";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminGooglersPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const googlers = await query<{
     id: string;
     name: string | null;

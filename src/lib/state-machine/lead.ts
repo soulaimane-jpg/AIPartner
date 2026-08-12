@@ -9,6 +9,7 @@
  */
 
 import "server-only";
+import type { PoolClient } from "pg";
 import { queryOne, updateRows } from "@/lib/db";
 import { LEAD_STATES, type LeadState } from "@/lib/enums";
 import { auditTransition, type TransitionActor } from "./transition";
@@ -146,19 +147,41 @@ export interface TransitionLeadOptions {
   reason?: string;
   /** Extra audit payload context. */
   meta?: Record<string, unknown>;
+  /**
+   * Join a caller's transaction so the transition commits atomically
+   * with its side effects. When supplied, the brief row is locked
+   * `FOR UPDATE` for the remainder of that transaction, which serialises
+   * concurrent transitions on the same brief.
+   */
+  client?: PoolClient;
 }
 
 /**
  * Execute a guarded lead transition. Throws `LeadTransitionError` on
  * an illegal edge. Returns the new state.
+ *
+ * Concurrency: read-then-write was previously unserialised, so two
+ * admins clicking at once resolved by statement ordering and both could
+ * fire the side effects around the transition. Inside a transaction the
+ * row is locked, making the check-and-set atomic.
  */
 export async function transitionLead(
   opts: TransitionLeadOptions,
 ): Promise<LeadState> {
-  const brief = await queryOne<{ id: string; leadState: string; stage: string }>(
-    'SELECT "id", "leadState", "stage" FROM "ProjectBrief" WHERE "id" = $1',
-    [opts.briefId],
-  );
+  const select = `SELECT "id", "leadState", "stage" FROM "ProjectBrief" WHERE "id" = $1${
+    opts.client ? " FOR UPDATE" : ""
+  }`;
+  const brief = opts.client
+    ? ((
+        await opts.client.query<{
+          id: string;
+          leadState: string;
+          stage: string;
+        }>(select, [opts.briefId])
+      ).rows[0] ?? null)
+    : await queryOne<{ id: string; leadState: string; stage: string }>(select, [
+        opts.briefId,
+      ]);
   if (!brief) throw new LeadTransitionError("?", opts.to, "Brief not found");
 
   // Briefs predating leadState: infer from the legacy stage.
@@ -184,6 +207,7 @@ export async function transitionLead(
       leadState: opts.to,
       stage: LEAD_STATE_TO_LEGACY_STAGE[opts.to],
     },
+    { client: opts.client },
   );
 
   await auditTransition({
@@ -195,6 +219,7 @@ export async function transitionLead(
     to: opts.to,
     reason: opts.reason,
     meta: opts.meta,
+    client: opts.client,
   });
 
   return opts.to;
@@ -218,7 +243,9 @@ export async function transitionLead(
 export async function advanceLeadIfAllowed(
   opts: TransitionLeadOptions,
 ): Promise<LeadState | null> {
-  const from = await getLeadState(opts.briefId);
+  // Read through the caller's client when present, otherwise this
+  // wouldn't see writes made earlier in the same transaction.
+  const from = await getLeadState(opts.briefId, opts.client);
   if (!from) return null;
   if (from === opts.to) return from;
 
@@ -246,11 +273,16 @@ export async function cancelLead(opts: {
 }
 
 /** Read the effective lead state (handles pre-plan-A briefs). */
-export async function getLeadState(briefId: string): Promise<LeadState | null> {
-  const brief = await queryOne<{ leadState: string; stage: string }>(
-    'SELECT "leadState", "stage" FROM "ProjectBrief" WHERE "id" = $1',
-    [briefId],
-  );
+export async function getLeadState(
+  briefId: string,
+  client?: PoolClient,
+): Promise<LeadState | null> {
+  const text =
+    'SELECT "leadState", "stage" FROM "ProjectBrief" WHERE "id" = $1';
+  const brief = client
+    ? ((await client.query<{ leadState: string; stage: string }>(text, [briefId]))
+        .rows[0] ?? null)
+    : await queryOne<{ leadState: string; stage: string }>(text, [briefId]);
   if (!brief) return null;
   if (isLeadState(brief.leadState)) {
     if (brief.leadState === "DRAFT" && brief.stage !== "INTAKE") {

@@ -15,6 +15,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isCronAuthorised } from "@/lib/cron-auth";
 import { withHeartbeat } from "@/lib/cron-heartbeat";
 import { runRetention, seedRetentionPolicies } from "@/lib/jobs/retention";
+import { sweepDsrRequests } from "@/lib/jobs/dsr";
+import { captureError } from "@/lib/observability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,12 +28,16 @@ export async function GET(req: NextRequest) {
   try {
     const result = await withHeartbeat("retention", async () => {
       await seedRetentionPolicies();
-      return runRetention();
+      const purged = await runRetention();
+      // Catch-up for data-subject requests: fulfilment is normally
+      // enqueued at request time, but a lost enqueue must not leave a
+      // statutory 30-day clock running with nothing on the other end.
+      const dsr = await sweepDsrRequests();
+      return { ...purged, dsr };
     });
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("[cron.retention] worker failed", err);
+    captureError(err, { scope: "cron", job: "retention" });
     return NextResponse.json(
       {
         ok: false,

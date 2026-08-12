@@ -250,6 +250,9 @@ export const aiRankPartnersAction = defineAction({
           tag: "ai-sourcing",
           maxTokens: 800,
           temperature: 0.2,
+          // Partner profile text is partner-authored (and partly derived
+          // from their own website), and this call influences ranking.
+          untrustedInput: true,
         });
 
         if (!result.ok) {

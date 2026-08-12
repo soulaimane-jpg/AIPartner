@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { ScheduleMeetingButton } from "@/components/admin/schedule-meeting-button";
 import { CancelMeetingButton } from "@/components/admin/cancel-meeting-button";
 import { cn } from "@/lib/utils";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,10 @@ export default async function AdminMeetingsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const session = await auth();
   const userId = session!.user.id;
   const sp = await searchParams;

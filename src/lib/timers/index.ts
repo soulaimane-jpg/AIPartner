@@ -11,9 +11,11 @@
  */
 
 import "server-only";
+import type { PoolClient } from "pg";
 import { query, exec, insertRow, updateRows } from "@/lib/db";
 import type { TimerInstanceRow } from "@/lib/db/rows";
 import { getSetting } from "@/lib/settings";
+import { captureError } from "@/lib/observability";
 import { runExpiryAction, runReminder } from "./handlers";
 
 export const TIMER_TYPES = [
@@ -37,20 +39,38 @@ export interface StartTimerOptions {
   onExpiryAction?: string;
   /** Context for the expiry handler: briefId, matchId, … */
   meta?: Record<string, unknown>;
+  /**
+   * Join a caller's transaction so the timer commits atomically with the
+   * transition that created it. A submitted lead with no triage SLA was
+   * previously a possible outcome of a mid-request crash.
+   */
+  client?: PoolClient;
 }
 
-async function auditTimer(kind: string, timerId: string, payload: unknown) {
-  await insertRow(
-    "AuditLog",
-    {
-      actorId: null,
-      kind: `timer.${kind}`,
-      targetId: timerId,
-      targetType: "TimerInstance",
-      payload: JSON.stringify(payload ?? {}),
-    },
-    { noUpdatedAt: true },
-  ).catch(() => undefined);
+async function auditTimer(
+  kind: string,
+  timerId: string,
+  payload: unknown,
+  client?: PoolClient,
+) {
+  try {
+    await insertRow(
+      "AuditLog",
+      {
+        actorId: null,
+        kind: `timer.${kind}`,
+        targetId: timerId,
+        targetType: "TimerInstance",
+        payload: JSON.stringify(payload ?? {}),
+      },
+      { noUpdatedAt: true, client },
+    );
+  } catch (err) {
+    // Inside a caller transaction the error must propagate, or the
+    // surrounding COMMIT fails later with a confusing message.
+    if (client) throw err;
+    captureError(err, { scope: "timer", kind, timerId });
+  }
 }
 
 /**
@@ -58,26 +78,35 @@ async function auditTimer(kind: string, timerId: string, payload: unknown) {
  * (entity, type) is cancelled first — one live timer per slot.
  */
 export async function startTimer(opts: StartTimerOptions): Promise<string> {
-  await exec(
-    `UPDATE "TimerInstance" SET "status" = 'cancelled', "updatedAt" = NOW()
-     WHERE "entityType" = $1 AND "entityId" = $2 AND "timerType" = $3 AND "status" = 'active'`,
-    [opts.entityType, opts.entityId, opts.timerType],
-  );
+  const cancelSql = `UPDATE "TimerInstance" SET "status" = 'cancelled', "updatedAt" = NOW()
+     WHERE "entityType" = $1 AND "entityId" = $2 AND "timerType" = $3 AND "status" = 'active'`;
+  const cancelParams = [opts.entityType, opts.entityId, opts.timerType];
+  if (opts.client) await opts.client.query(cancelSql, cancelParams);
+  else await exec(cancelSql, cancelParams);
 
-  const timer = await insertRow<TimerInstanceRow>("TimerInstance", {
-    entityType: opts.entityType,
-    entityId: opts.entityId,
-    timerType: opts.timerType,
-    deadlineAt: opts.deadlineAt,
-    onExpiryAction: opts.onExpiryAction ?? opts.timerType,
-    meta: JSON.stringify(opts.meta ?? {}),
-  });
-  await auditTimer("started", timer.id, {
-    entityType: opts.entityType,
-    entityId: opts.entityId,
-    timerType: opts.timerType,
-    deadlineAt: opts.deadlineAt.toISOString(),
-  });
+  const timer = await insertRow<TimerInstanceRow>(
+    "TimerInstance",
+    {
+      entityType: opts.entityType,
+      entityId: opts.entityId,
+      timerType: opts.timerType,
+      deadlineAt: opts.deadlineAt,
+      onExpiryAction: opts.onExpiryAction ?? opts.timerType,
+      meta: JSON.stringify(opts.meta ?? {}),
+    },
+    { client: opts.client },
+  );
+  await auditTimer(
+    "started",
+    timer.id,
+    {
+      entityType: opts.entityType,
+      entityId: opts.entityId,
+      timerType: opts.timerType,
+      deadlineAt: opts.deadlineAt.toISOString(),
+    },
+    opts.client,
+  );
   return timer.id;
 }
 
@@ -86,15 +115,22 @@ export async function satisfyTimer(
   entityType: "brief" | "match",
   entityId: string,
   timerType: TimerType,
+  client?: PoolClient,
 ): Promise<void> {
-  const timers = await query<{ id: string }>(
-    `UPDATE "TimerInstance" SET "status" = 'satisfied', "satisfiedAt" = NOW(), "updatedAt" = NOW()
+  const sql = `UPDATE "TimerInstance" SET "status" = 'satisfied', "satisfiedAt" = NOW(), "updatedAt" = NOW()
      WHERE "entityType" = $1 AND "entityId" = $2 AND "timerType" = $3 AND "status" = 'active'
-     RETURNING "id"`,
-    [entityType, entityId, timerType],
-  );
+     RETURNING "id"`;
+  const params = [entityType, entityId, timerType];
+  const timers = client
+    ? (await client.query<{ id: string }>(sql, params)).rows
+    : await query<{ id: string }>(sql, params);
   for (const t of timers) {
-    await auditTimer("satisfied", t.id, { entityType, entityId, timerType });
+    await auditTimer(
+      "satisfied",
+      t.id,
+      { entityType, entityId, timerType },
+      client,
+    );
   }
 }
 
@@ -186,12 +222,28 @@ export async function sweepTimers(now: Date = new Date()): Promise<SweepResult> 
         .sort((a, b) => a - b)[0];
       if (due === undefined) continue;
 
-      await runReminder(timer, due, Math.max(1, Math.round(hoursLeft)));
-      await updateRows(
-        "TimerInstance",
-        { id: timer.id },
-        { remindersSent: JSON.stringify([...sent, due]) },
+      // Claim the offset BEFORE sending, with a compare-and-swap on the
+      // value we read. Expiry already did this; reminders did not — they
+      // read, sent, then wrote back, so two overlapping sweeps both
+      // passed the `!sent.includes(o)` check and the partner got the
+      // same reminder twice. Claiming first also means a crash mid-send
+      // drops a reminder rather than duplicating it, which is the
+      // better failure direction for a deadline nudge.
+      const claimed = await exec(
+        `UPDATE "TimerInstance"
+            SET "remindersSent" = $2, "updatedAt" = NOW()
+          WHERE "id" = $1
+            AND "status" = 'active'
+            AND "remindersSent" = $3`,
+        [
+          timer.id,
+          JSON.stringify([...sent, due]),
+          timer.remindersSent,
+        ],
       );
+      if (claimed === 0) continue; // another sweep got there first
+
+      await runReminder(timer, due, Math.max(1, Math.round(hoursLeft)));
       result.reminded++;
     } catch (err) {
       result.errors++;

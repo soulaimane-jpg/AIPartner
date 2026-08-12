@@ -12,6 +12,7 @@ import { z } from "zod";
 import { query, queryOne, insertRow } from "@/lib/db";
 import type { AnonymizedProposalRow } from "@/lib/db/rows";
 import { parseLlmJson } from "@/lib/ai/parse";
+import { fenceUntrusted } from "@/lib/ai/untrusted";
 import { PROPOSAL_SECTION_KEYS } from "@/lib/sections";
 
 export const ANONYMIZE_PROMPT_VERSION = "anonymize-v1";
@@ -100,13 +101,20 @@ export async function runAnonymizationPass(
       proposal.partnerWebsite ? `Website: ${proposal.partnerWebsite}` : "",
       ``,
       `# Proposal sections (JSON)`,
-      JSON.stringify(sectionInput, null, 2),
+      // Partner-authored text whose whole purpose here is to have its
+      // identity removed — so it is exactly the text most motivated to
+      // talk the model out of doing that.
+      fenceUntrusted(JSON.stringify(sectionInput, null, 2), {
+        source: "partner proposal sections",
+      }),
     ]
       .filter(Boolean)
       .join("\n"),
+    untrustedInput: true,
     tag: "anonymize-proposal",
     maxTokens: 6000,
     temperature: 0,
+    timeoutMs: 60_000,
   });
 
   if (!result.ok) {

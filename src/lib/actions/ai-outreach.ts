@@ -133,6 +133,8 @@ export const draftOutreachAction = defineAction({
       system: OUTREACH_SYSTEM,
       user: userMsg,
       tag: "admin-outreach",
+      // Interpolates partner-authored profile fields.
+      untrustedInput: true,
       maxTokens: 800,
       temperature: 0.5,
     });

@@ -25,6 +25,7 @@ import {
   classifyUpload,
   extractText,
   MAX_UPLOAD_BYTES,
+  verifySignature,
 } from "@/lib/attachments/extract";
 
 export const runtime = "nodejs";
@@ -161,6 +162,17 @@ export async function POST(
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  // The declared MIME type and the extension are both client-controlled,
+  // so verify the actual bytes before we hand the file to a parser.
+  const signature = verifySignature(kind, buffer);
+  if (!signature.ok) {
+    return NextResponse.json(
+      { ok: false, error: `“${file.name}”: ${signature.reason}` },
+      { status: 415 },
+    );
+  }
+
   const storagePath = buildStoragePath({
     companyId: brief.companyId,
     briefId,

@@ -5,6 +5,7 @@ import {
   type LegalDocType,
 } from "@/lib/legal/documents";
 import { PublishLegalForm } from "./publish-legal-form";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Legal documents · Admin" };
@@ -23,6 +24,10 @@ const DOC_TYPE_LABELS: Record<LegalDocType, string> = {
  * user on next navigation.
  */
 export default async function AdminLegalPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const docs = await Promise.all(
     LEGAL_DOC_TYPES.map(async (docType) => {
       const doc = await getCurrentDocument(docType);

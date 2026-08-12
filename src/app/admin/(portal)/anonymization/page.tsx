@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
 import { AnonymizationReviewCard } from "./review-card";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Anonymization queue · Admin" };
@@ -11,6 +12,10 @@ export const metadata = { title: "Anonymization queue · Admin" };
  * approves or rejects. Nothing reaches a customer unapproved.
  */
 export default async function AnonymizationQueuePage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const rows = await query<{
     id: string;
     content: string;

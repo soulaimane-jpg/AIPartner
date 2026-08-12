@@ -22,8 +22,13 @@ import { ReviewWorkflowCard } from "@/components/review-workflow-card";
 import { AnonymizedSummaryPreview } from "@/components/anonymized-summary-preview";
 import { CollaboratorsPanel, type CollaboratorRow } from "@/components/brief/collaborators-panel";
 import { QaSectionCustomer } from "@/components/brief/qa-section-customer";
+import {
+  RiskRadarCard,
+  type RiskRadarSnapshot,
+} from "@/components/brief/risk-radar-card";
+import { hashBriefForRadar } from "@/lib/risk-radar";
 import { safeJsonParse } from "@/lib/utils";
-import { computeCompletionBreakdown } from "@/lib/brief";
+import { computeCompletionBreakdown, MIN_SUBMIT_COMPLETION } from "@/lib/brief";
 import { SERVICE_CATEGORIES_LABEL } from "@/lib/constants";
 import type {
   BriefStage,
@@ -87,6 +92,36 @@ export default async function BriefPreviewPage({
      ORDER BY "createdAt" ASC`,
     [id],
   );
+
+  // Latest pre-submit review, plus whether it still describes the brief as
+  // it stands now. `submitBriefAction` re-derives the same hash, so a
+  // report written against an older version of the brief is not a pass.
+  const radarRow = await queryOne<{
+    id: string;
+    overall: string;
+    findings: string;
+    briefHash: string;
+    acknowledgedAt: Date | null;
+  }>(
+    `SELECT "id", "overall", "findings", "briefHash", "acknowledgedAt"
+       FROM "RiskRadarReport"
+      WHERE "briefId" = $1
+      ORDER BY "createdAt" DESC
+      LIMIT 1`,
+    [id],
+  );
+  const radarSnapshot: RiskRadarSnapshot | null = radarRow
+    ? {
+        id: radarRow.id,
+        overall: radarRow.overall as RiskRadarSnapshot["overall"],
+        findings: safeJsonParse<RiskRadarSnapshot["findings"]>(
+          radarRow.findings,
+          [],
+        ),
+        acknowledgedAt: radarRow.acknowledgedAt,
+        stale: radarRow.briefHash !== hashBriefForRadar(brief),
+      }
+    : null;
 
   const userEmail = (session.user.email ?? "").toLowerCase();
   const isOwner = brief.ownerId === session.user.id;
@@ -344,22 +379,45 @@ export default async function BriefPreviewPage({
           {brief.status === "DRAFT" && viewerKind === "owner" && (() => {
             const approvers = collaboratorRows.filter((c) => c.role === "EDITOR");
             const pendingApprovers = approvers.filter((c) => !c.approvedAt && !c.rejectedAt);
-            const completionOk = brief.completion >= 40;
+            const completionOk = brief.completion >= MIN_SUBMIT_COMPLETION;
             const reviewOk = brief.reviewWorkflowConfirmed;
             const blockers: string[] = [];
-            if (!completionOk) blockers.push(`Reach 40% completion (currently ${brief.completion}%)`);
+            if (!completionOk) blockers.push(`Reach ${MIN_SUBMIT_COMPLETION}% completion (currently ${brief.completion}%)`);
             if (!reviewOk) blockers.push("Confirm your internal review workflow above");
             if (pendingApprovers.length > 0) {
               blockers.push(
                 `Awaiting approval from ${pendingApprovers.map((c) => c.name ?? c.email).join(", ")}`,
               );
             }
+            // The server gate requires a CURRENT, non-blocking radar report
+            // (see `evaluateRiskRadarGate`). Mirror it here so the customer
+            // sees why the button is disabled — and so the blocker is
+            // actionable via the card rendered directly above.
+            if (!radarSnapshot) {
+              blockers.push("Run the pre-submit review (Risk Radar)");
+            } else if (radarSnapshot.stale) {
+              blockers.push("Re-run Risk Radar — the brief changed since the last scan");
+            } else if (
+              (radarSnapshot.overall === "block" ||
+                radarSnapshot.overall === "failed") &&
+              !radarSnapshot.acknowledgedAt
+            ) {
+              blockers.push(
+                radarSnapshot.overall === "failed"
+                  ? "Risk Radar didn't complete — re-run or acknowledge it"
+                  : "Address or acknowledge the Risk Radar blockers",
+              );
+            }
             const disabled = blockers.length > 0;
             return (
               <section
                 id="submit"
-                className="rounded-2xl bg-card border border-border shadow-elev-1 p-5"
+                className="rounded-2xl bg-card border border-border shadow-elev-1 p-5 space-y-4"
               >
+                {/* Pre-submit review. Without this mounted, the server's
+                    fail-closed radar gate would be unsatisfiable. */}
+                <RiskRadarCard briefId={brief.id} initial={radarSnapshot} />
+
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 text-foreground">

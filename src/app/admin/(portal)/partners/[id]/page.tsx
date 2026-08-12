@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { safeJsonParse, timeAgo } from "@/lib/utils";
 import { PartnerContactsManager } from "./partner-contacts-manager";
 import { TncStatusControl } from "./tnc-status-control";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Partner detail · Admin" };
@@ -24,6 +25,10 @@ export default async function AdminPartnerDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const { id } = await params;
   const partner = await queryOne<CompanyRow>(
     `SELECT * FROM "Company" WHERE "id" = $1 AND "kind" = 'PARTNER'`,

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { ScrollText } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { AuditLogTimeline } from "@/components/audit/audit-log-timeline";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,10 @@ export default async function AdminAuditPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const session = await auth();
   if (session?.user?.role !== "ADMIN") redirect("/");
 

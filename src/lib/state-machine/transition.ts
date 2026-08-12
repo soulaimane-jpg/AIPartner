@@ -9,7 +9,9 @@
  */
 
 import "server-only";
+import type { PoolClient } from "pg";
 import { insertRow } from "@/lib/db";
+import { captureError } from "@/lib/observability";
 
 export type TransitionActor =
   | { kind: "user"; userId: string; companyId?: string | null }
@@ -26,6 +28,8 @@ export interface AuditTransitionOptions {
   to: string;
   reason?: string;
   meta?: Record<string, unknown>;
+  /** Write the audit row inside the caller's transaction. */
+  client?: PoolClient;
 }
 
 export async function auditTransition(
@@ -49,15 +53,21 @@ export async function auditTransition(
           ...(opts.meta ?? {}),
         }),
       },
-      { noUpdatedAt: true },
+      { noUpdatedAt: true, client: opts.client },
     );
   } catch (err) {
-    // Audit must never break the transition — log and continue.
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[transition] audit failed ${opts.machine}:${opts.from}→${opts.to}`,
-      err,
-    );
+    // Audit must never break the transition. When the caller supplied a
+    // transaction we must still rethrow, because swallowing here would
+    // leave the surrounding transaction aborted-but-uncommitted and the
+    // real error would surface later as a confusing COMMIT failure.
+    if (opts.client) throw err;
+    captureError(err, {
+      scope: "transition",
+      machine: opts.machine,
+      from: opts.from,
+      to: opts.to,
+      entityId: opts.entityId,
+    });
   }
 }
 

@@ -84,6 +84,109 @@ export function classifyUpload(
   }
 }
 
+/**
+ * File-signature ("magic byte") detection.
+ *
+ * `classifyUpload` trusts the client-supplied MIME type and falls back to
+ * the filename extension, so a file could be routed to the wrong parser
+ * purely by lying about its name. The parsers are wrapped in try/catch so
+ * the practical consequence was a confusing error rather than anything
+ * worse — but this is the cheapest possible check and it turns a class of
+ * "weird failure" into a clear rejection.
+ *
+ * Returns null when the bytes don't match a signature we know (plain
+ * text, CSV and Markdown have none — they're handled by the caller).
+ */
+export function sniffSignature(buffer: Buffer): AttachmentKind | null {
+  if (buffer.length < 4) return null;
+  const hex = buffer.subarray(0, 12).toString("hex").toLowerCase();
+
+  // `%PDF` is not always at byte 0: the spec allows leading bytes, and
+  // real files (re-wrapped, or with a prepended banner) rely on that —
+  // Acrobat itself scans the first 1KB. A strict prefix check here would
+  // reject documents the customer can legitimately open.
+  if (buffer.subarray(0, 1024).includes("%PDF")) return "pdf";
+  if (hex.startsWith("89504e47")) return "image"; // PNG
+  if (hex.startsWith("ffd8ff")) return "image"; // JPEG
+  if (hex.startsWith("47494638")) return "image"; // GIF8
+  // RIFF....WEBP
+  if (hex.startsWith("52494646") && hex.slice(16, 24) === "57454250") {
+    return "image";
+  }
+  // Legacy OLE2 container: .doc and .xls share it, so we can only say
+  // "an old Office file" — both map to a parser that will try its best.
+  if (hex.startsWith("d0cf11e0a1b11ae1")) return "docx";
+  // ZIP container: modern .docx/.xlsx (and plenty of other things). The
+  // distinction between them can't be made from the header alone, so the
+  // caller keeps its extension-derived kind when we return "zip-office".
+  if (
+    hex.startsWith("504b0304") ||
+    hex.startsWith("504b0506") ||
+    hex.startsWith("504b0708")
+  ) {
+    return "docx";
+  }
+  return null;
+}
+
+/** True when the two kinds can legitimately share a container format. */
+function signatureCompatible(
+  declared: AttachmentKind,
+  sniffed: AttachmentKind,
+): boolean {
+  if (declared === sniffed) return true;
+  // Both OOXML kinds are ZIP archives, indistinguishable by header.
+  const ooxml = new Set<AttachmentKind>(["docx", "xlsx"]);
+  if (ooxml.has(declared) && ooxml.has(sniffed)) return true;
+  return false;
+}
+
+export type SignatureVerdict =
+  | { ok: true; kind: AttachmentKind }
+  | { ok: false; reason: string };
+
+/**
+ * Validate the declared kind against the actual bytes.
+ *
+ * Text-like formats have no signature, so an unrecognised header is only
+ * an error when the declared kind claims a binary format.
+ */
+export function verifySignature(
+  declared: AttachmentKind,
+  buffer: Buffer,
+): SignatureVerdict {
+  const sniffed = sniffSignature(buffer);
+
+  if (declared === "text") {
+    // A binary masquerading as .txt would produce mojibake, not a parser
+    // mismatch — reject the obvious cases.
+    if (sniffed && sniffed !== "text") {
+      return {
+        ok: false,
+        reason: `File looks like a ${sniffed} file but was uploaded as text.`,
+      };
+    }
+    return { ok: true, kind: "text" };
+  }
+
+  if (!sniffed) {
+    return {
+      ok: false,
+      reason:
+        "File contents don't match a recognised PDF, Office or image format.",
+    };
+  }
+
+  if (!signatureCompatible(declared, sniffed)) {
+    return {
+      ok: false,
+      reason: `File contents look like a ${sniffed} file, not ${declared}.`,
+    };
+  }
+
+  return { ok: true, kind: declared };
+}
+
 export interface ExtractionResult {
   status: AttachmentExtractionStatus;
   text: string | null;

@@ -4,9 +4,14 @@
  * GET /api/partner/tags?facet=workload&q=migra
  *   → { ok: true, tags: [{ id, label, status, useCount }] }
  *
- * Read-only and scoped to the curated library, so it is safe for any signed-in
- * partner. Suggesting a *new* tag goes through a Server Action instead
- * (`suggestPartnerTagAction`) so it picks up rate limiting and audit.
+ * Read-only and scoped to the curated library. Suggesting a *new* tag goes
+ * through a Server Action instead (`suggestPartnerTagAction`) so it picks
+ * up rate limiting and audit.
+ *
+ * Role-gated to PARTNER/ADMIN. It previously checked only that a session
+ * existed, so any customer, collaborator or googler could enumerate the
+ * curated tag library — which is the exact vocabulary `match-score-v2`
+ * scores against, i.e. a map of what sourcing rewards.
  */
 
 import { NextRequest } from "next/server";
@@ -21,6 +26,10 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) {
     return Response.json({ error: "Sign in required" }, { status: 401 });
+  }
+  const role = session.user.role;
+  if (role !== "PARTNER" && role !== "ADMIN") {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const url = new URL(req.url);

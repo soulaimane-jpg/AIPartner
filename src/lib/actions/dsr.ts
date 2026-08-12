@@ -11,10 +11,9 @@
  *   - **rectify** : free-text request describing the inaccuracy.
  *                   Fulfilled by an admin; cheap demand-side surface.
  *
- * Lifecycle is `queued → processing → complete | rejected`. The actual
- * heavy work (export bundle generation, erasure cascade) runs in a
- * background job — Phase 5 of the plan. Today we only persist the
- * intent, audit it, and email the user a confirmation.
+ * Lifecycle is `queued → processing → complete | rejected`. The heavy
+ * work runs in a background job (`lib/jobs/dsr.ts`), enqueued here so
+ * fulfilment starts immediately rather than waiting on a sweep.
  *
  * Compliance SLA: 30 calendar days from request to completion (GDPR
  * Art. 12). The retention worker surfaces overdue requests to admin.
@@ -25,6 +24,7 @@ import { revalidatePath } from "next/cache";
 import { defineAction, fail } from "@/lib/actions/define";
 import { queryOne, insertRow, updateRows } from "@/lib/db";
 import { sendEmail } from "@/lib/email/provider";
+import { enqueue } from "@/lib/jobs/queue";
 
 const DsrKind = z.enum(["export", "erase", "rectify"]);
 
@@ -74,6 +74,19 @@ export const submitDsrRequestAction = defineAction({
       status: "queued",
       notes: notes?.trim() || null,
     });
+
+    // Actually fulfil it. Until now this table was a queue with no
+    // worker: requests were recorded, the 30-day statutory clock started,
+    // and nothing ever completed one. `rectify` stays manual by design —
+    // only a human can judge what is inaccurate — but it is surfaced to
+    // admins so the deadline is visible.
+    if (kind === "export" || kind === "erase") {
+      await enqueue(
+        kind === "export" ? "dsr.export" : "dsr.erase",
+        { requestId: row.id },
+        { idemKey: `dsr:${row.id}` },
+      );
+    }
 
     // Confirmation email to the user — never to the admins (privacy).
     await sendEmail({

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { query, queryOne } from "@/lib/db";
 import { TranscriptForm } from "./transcript-form";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Call transcript · Admin" };
@@ -18,6 +19,10 @@ export default async function AdminTranscriptPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const { id } = await params;
   const brief = await queryOne<{
     id: string;

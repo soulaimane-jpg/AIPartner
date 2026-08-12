@@ -2,6 +2,7 @@ import { query } from "@/lib/db";
 import type { NotificationTemplateRow } from "@/lib/db/rows";
 import { NOTIFICATION_EVENTS } from "@/lib/notify";
 import { TemplateEditor } from "./template-editor";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Notification templates · Admin" };
@@ -12,6 +13,10 @@ export const metadata = { title: "Notification templates · Admin" };
  * Placeholders use {{variable}} substitution.
  */
 export default async function AdminNotificationsPage() {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const overrides = await query<NotificationTemplateRow>(
     'SELECT * FROM "NotificationTemplate"',
   );

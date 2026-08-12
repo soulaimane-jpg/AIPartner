@@ -201,6 +201,18 @@ if (_env.NODE_ENV === "production") {
       `Missing required production env: ${missing.join(", ")}`,
     );
   }
+
+  // The in-memory limiter is process-local. On Cloud Run every instance
+  // keeps its own counters, so the effective limit is multiplied by the
+  // instance count — silently, with no error and no log line. That turns
+  // every brute-force and abuse limit into a suggestion. Refuse to boot
+  // rather than run with authentication throttling that doesn't work.
+  if (_env.RATE_LIMIT_BACKEND === "memory") {
+    throw new Error(
+      "RATE_LIMIT_BACKEND=memory is process-local and cannot enforce limits " +
+        "across Cloud Run instances. Use 'db' (or 'redis' once wired) in production.",
+    );
+  }
 }
 
 applyProductionRequirements(merged, _env.NODE_ENV);

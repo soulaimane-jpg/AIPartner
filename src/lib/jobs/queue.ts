@@ -242,4 +242,35 @@ export const JOB_HANDLERS: Record<string, JobHandler> = {
     const { rescrapePartner } = await import("@/lib/jobs/partner-rescrape");
     await rescrapePartner(companyId);
   },
+
+  /**
+   * GDPR art. 15/20 export. Payload: `{ requestId: string }`.
+   */
+  "dsr.export": async (payload) => {
+    const requestId =
+      typeof payload.requestId === "string" ? payload.requestId : "";
+    if (!requestId) throw new Error("missing requestId");
+    const { fulfilExport } = await import("@/lib/jobs/dsr");
+    await fulfilExport(requestId);
+  },
+
+  /**
+   * GDPR art. 17 erasure. Payload: `{ requestId: string }`.
+   *
+   * Anonymises rather than hard-deletes — see `lib/jobs/dsr.ts` for why
+   * audit, legal and financial records are retained.
+   */
+  "dsr.erase": async (payload) => {
+    const requestId =
+      typeof payload.requestId === "string" ? payload.requestId : "";
+    if (!requestId) throw new Error("missing requestId");
+    const { fulfilErasure } = await import("@/lib/jobs/dsr");
+    await fulfilErasure(requestId);
+  },
+
+  /** Catch-up sweep for anything queued but never enqueued. */
+  "dsr.sweep": async () => {
+    const { sweepDsrRequests } = await import("@/lib/jobs/dsr");
+    await sweepDsrRequests();
+  },
 };

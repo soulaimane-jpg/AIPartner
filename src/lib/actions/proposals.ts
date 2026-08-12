@@ -19,6 +19,7 @@ import { queryOne, tx } from "@/lib/db";
 import { advanceLeadIfAllowed } from "@/lib/state-machine/lead";
 import { userActor } from "@/lib/state-machine/transition";
 import { notify, notifyAdmins } from "@/lib/notify";
+import { requireProposalInBrief } from "@/lib/actions/tenancy";
 
 // ─── Customer selects a winning proposal ──────────────────────────
 
@@ -39,17 +40,32 @@ export const selectProposalAction = defineAction({
     );
     if (!brief) fail({ code: "NOT_FOUND", resource: "Brief" });
 
+    // Re-scope the proposal to the brief the caller was authorized
+    // against. Owning brief A used to let a caller mark ANY proposal id
+    // as SELECTED — the ownership check above passed, then the update
+    // ran on `WHERE "id" = $1` alone, mutating another company's live
+    // selection state.
+    await requireProposalInBrief(proposalId, briefId);
+
     await tx(async (client) => {
       await client.query(
         `UPDATE "Proposal" SET "status" = 'DECLINED', "updatedAt" = NOW()
          WHERE "briefId" = $1`,
         [briefId],
       );
-      await client.query(
+      const selected = await client.query(
         `UPDATE "Proposal" SET "status" = 'SELECTED', "updatedAt" = NOW()
-         WHERE "id" = $1`,
-        [proposalId],
+         WHERE "id" = $1 AND "briefId" = $2`,
+        [proposalId, briefId],
       );
+      // Belt-and-braces: if the scoped update matched nothing the
+      // proposal moved briefs between the check and the write, so roll
+      // back rather than leaving every proposal DECLINED with no winner.
+      if (selected.rowCount !== 1) {
+        throw new Error(
+          `selectProposal: expected 1 row, got ${selected.rowCount}`,
+        );
+      }
     });
 
     // Notifications live outside the transaction on purpose: they

@@ -114,6 +114,7 @@ export function getPortalNav(role: PortalRole | string | undefined): PortalNav {
           { href: "/admin/flags",                label: "Flags",          icon: "flags"     },
           { href: "/admin/developers",           label: "Developers",     icon: "developers" },
           { href: "/admin/sub-processors",       label: "Sub-processors", icon: "sub-processors" },
+          { href: "/admin/dsr",                  label: "Data requests",  icon: "sub-processors" },
           { href: "/admin/audit",                label: "Audit log",      icon: "audit"     },
         ],
         footer: [

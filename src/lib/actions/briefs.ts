@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { query, queryOne, exec, insertRow, updateRows, tx } from "@/lib/db";
 import type { ProjectBriefRow } from "@/lib/db/rows";
-import { computeCompletion } from "@/lib/brief";
+import { computeCompletion, MIN_SUBMIT_COMPLETION } from "@/lib/brief";
+import {
+  evaluateRiskRadarGate,
+  RADAR_BRIEF_COLUMNS,
+  type RadarBriefFields,
+} from "@/lib/risk-radar";
 import { buildOpeningMessage } from "@/lib/brief-prompts";
 import { defineAction, fail } from "@/lib/actions/define";
 import { hasOutstandingApprovals } from "@/lib/workspace-access";
@@ -339,12 +344,24 @@ export const submitBriefAction = defineAction({
       id: string;
       title: string;
       reviewWorkflowConfirmed: boolean;
+      completion: number;
     }>(
-      `SELECT "id", "title", "reviewWorkflowConfirmed"
+      `SELECT "id", "title", "reviewWorkflowConfirmed", "completion"
        FROM "ProjectBrief" WHERE "id" = $1`,
       [briefId],
     );
     if (!brief) fail({ code: "NOT_FOUND", resource: "Brief" });
+
+    // Completion gate. This used to live only in the preview page, so a
+    // direct Server Action call — they're just HTTP endpoints — could
+    // push an empty brief straight into the admin triage queue.
+    if ((brief!.completion ?? 0) < MIN_SUBMIT_COMPLETION) {
+      fail({
+        code: "CONFLICT",
+        reason: `This brief is ${brief!.completion ?? 0}% complete. Reach ${MIN_SUBMIT_COMPLETION}% before sending it to our team.`,
+      });
+    }
+
     if (!brief!.reviewWorkflowConfirmed) {
       fail({
         code: "CONFLICT",
@@ -378,29 +395,19 @@ export const submitBriefAction = defineAction({
       });
     }
 
-    // Risk Radar gate — block submit if the most recent report has a
-    // `block` overall severity that the customer hasn't acknowledged.
+    // Risk Radar gate — fail CLOSED. The old check only fired when a
+    // report existed and said `block`, so "no report" (never run, or the
+    // model call failed) sailed through, and a report written against an
+    // older version of the brief still counted. Both are now rejected.
     // Defence-in-depth: the UI also gates the button, but the server
     // is the only enforcer we trust.
-    const radar = await queryOne<{
-      id: string;
-      overall: string;
-      acknowledgedAt: Date | null;
-    }>(
-      `SELECT "id", "overall", "acknowledgedAt" FROM "RiskRadarReport"
-       WHERE "briefId" = $1 ORDER BY "createdAt" DESC LIMIT 1`,
+    const radarFields = await queryOne<RadarBriefFields>(
+      `SELECT ${RADAR_BRIEF_COLUMNS} FROM "ProjectBrief" WHERE "id" = $1`,
       [briefId],
     );
-    if (
-      radar &&
-      radar.overall === "block" &&
-      !radar.acknowledgedAt
-    ) {
-      fail({
-        code: "CONFLICT",
-        reason:
-          "Risk Radar flagged blocking issues. Address them or acknowledge the report before submitting.",
-      });
+    const radarVerdict = await evaluateRiskRadarGate(briefId, radarFields!);
+    if (!radarVerdict.ok) {
+      fail({ code: "CONFLICT", reason: radarVerdict.reason });
     }
 
     const data: Record<string, unknown> = {
@@ -417,28 +424,42 @@ export const submitBriefAction = defineAction({
       if (meeting.agenda) data.meetingAgenda = meeting.agenda;
     }
 
-    await updateRows("ProjectBrief", { id: briefId }, data);
-
-    // The submit hop belongs to the state machine: it is what puts the
-    // lead into SUBMITTED, gives triage a real from-state, and records
-    // the first two audit hops of the lead's life.
-    await advanceLeadIfAllowed({
-      briefId,
-      to: "SUBMITTED",
-      actor: userActor(ctx.user!.id, ctx.user!.companyId),
-      meta: { source: "customer_submit" },
-    });
-
-    // Start the admin triage SLA — the customer is blocked until we act.
     const triageHours = await getSetting("triage_hours");
-    await startTimer({
-      entityType: "brief",
-      entityId: briefId,
-      timerType: "triage",
-      deadlineAt: new Date(Date.now() + triageHours * 3_600_000),
-      meta: { briefId },
+
+    // One transaction for the whole submit hop. These were four separate
+    // statements against the pool, so a mid-request preemption — routine
+    // on Cloud Run — could leave a brief marked ACTIVE with no lead
+    // transition, or a submitted lead with no triage SLA at all. The
+    // clock that makes admin lateness visible was exactly the piece that
+    // went missing.
+    await tx(async (client) => {
+      await updateRows("ProjectBrief", { id: briefId }, data, { client });
+
+      // The submit hop belongs to the state machine: it is what puts the
+      // lead into SUBMITTED, gives triage a real from-state, and records
+      // the first two audit hops of the lead's life.
+      await advanceLeadIfAllowed({
+        briefId,
+        to: "SUBMITTED",
+        actor: userActor(ctx.user!.id, ctx.user!.companyId),
+        meta: { source: "customer_submit" },
+        client,
+      });
+
+      // Start the admin triage SLA — the customer is blocked until we act.
+      await startTimer({
+        entityType: "brief",
+        entityId: briefId,
+        timerType: "triage",
+        deadlineAt: new Date(Date.now() + triageHours * 3_600_000),
+        meta: { briefId },
+        client,
+      });
     });
 
+    // Notifications stay outside the transaction: they enqueue email, and
+    // a mail hiccup must not roll back a submission the customer has
+    // already made. They are durable via the job queue.
     await notify({
       event: "brief.submitted",
       recipients: [{ userId: ctx.user!.id }],

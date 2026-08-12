@@ -15,6 +15,7 @@
 import "server-only";
 import { query, queryOne, insertRow } from "@/lib/db";
 import { enqueue } from "@/lib/jobs/queue";
+import { captureError } from "@/lib/observability";
 
 /** §9 event keys. P0/P1 all wired; priorities noted for reference. */
 export const NOTIFICATION_EVENTS = {
@@ -330,13 +331,32 @@ function render(template: string, vars: Record<string, string>): string {
   );
 }
 
+/**
+ * Notification failures used to be swallowed at four separate points, so
+ * a lifecycle action could succeed while nobody was told anything had
+ * happened. Since the funnel is notification-driven — the engagement
+ * acceptance page is reachable only from a notification link — a
+ * silently dropped notification is a silently dropped deal. We still
+ * never throw (notification failure must not roll back business state),
+ * but every failure is now reported.
+ */
+function reportNotifyIssue(
+  message: string,
+  context: Record<string, unknown>,
+): void {
+  captureError(new Error(message), { scope: "notify", ...context });
+}
+
 async function resolveTemplate(
   event: NotificationEvent,
 ): Promise<{ subject: string; body: string }> {
   const override = await queryOne<{ subject: string; body: string }>(
     'SELECT "subject", "body" FROM "NotificationTemplate" WHERE "key" = $1',
     [event],
-  ).catch(() => null);
+  ).catch((err) => {
+    reportNotifyIssue(`template lookup failed for ${event}`, { event, err });
+    return null;
+  });
   if (override) return { subject: override.subject, body: override.body };
   const def = NOTIFICATION_EVENTS[event];
   return { subject: def.subject, body: def.body };
@@ -358,6 +378,54 @@ export interface NotifyOptions {
   matchId?: string;
   /** Idempotency suffix — prevents duplicate sends for the same event instance. */
   idemKey?: string;
+  /**
+   * Set only when partner identity has *already* been revealed to this
+   * customer (`isPartnerRevealed()` returned true). Without it, any
+   * identity-bearing variable is redacted before it reaches a CUSTOMER
+   * or COLLABORATOR recipient. See `IDENTITY_VARS`.
+   */
+  revealed?: boolean;
+}
+
+/**
+ * Variables that can carry partner identity.
+ *
+ * Notifications are a second channel to the same customer that the page
+ * serializers guard, and this one had no firewall at all: `notify()`
+ * rendered whatever the caller passed. No customer-facing event passes
+ * these today, but nothing structurally stopped the next one — and the
+ * source-level notification test could not have caught it.
+ */
+const IDENTITY_VARS = [
+  "partnerName",
+  "partnerNames",
+  "partnerWebsite",
+  "partnerHq",
+  "acceptedName",
+] as const;
+
+/** Roles that sit behind the identity firewall. */
+const FIREWALLED_ROLES = new Set(["CUSTOMER", "COLLABORATOR"]);
+
+const REDACTION = "your matched partner";
+
+/**
+ * Strip identity-bearing variables for pre-reveal customer recipients.
+ * Returns the original object when there is nothing to redact.
+ */
+function redactIdentityVars(
+  vars: Record<string, string>,
+): { vars: Record<string, string>; redacted: string[] } {
+  const redacted: string[] = [];
+  let out = vars;
+  for (const key of IDENTITY_VARS) {
+    if (vars[key] !== undefined && vars[key] !== "") {
+      if (out === vars) out = { ...vars };
+      out[key] = REDACTION;
+      redacted.push(key);
+    }
+  }
+  return { vars: out, redacted };
 }
 
 /**
@@ -368,23 +436,64 @@ export async function notify(opts: NotifyOptions): Promise<void> {
   try {
     const vars = { ...(opts.vars ?? {}), link: opts.link ?? "" };
     const { subject, body } = await resolveTemplate(opts.event);
-    const renderedSubject = render(subject, vars);
-    const renderedBody = render(body, vars);
 
-    // Resolve missing emails for userId-only recipients in one query.
+    // Resolve email + role for every recipient we can attribute. Role
+    // drives the identity firewall, so it is enforced against the
+    // *actual* recipient rather than a declared audience — that way a
+    // customer id handed to an admin event is still caught.
     const userIds = opts.recipients
-      .filter((r) => r.userId && !r.email)
+      .filter((r) => r.userId)
       .map((r) => r.userId!) as string[];
-    const users = userIds.length
-      ? await query<{ id: string; email: string }>(
-          'SELECT "id", "email" FROM "User" WHERE "id" = ANY($1)',
-          [userIds],
-        )
-      : [];
-    const emailByUserId = new Map(users.map((u) => [u.id, u.email]));
+    const emails = opts.recipients
+      .filter((r) => !r.userId && r.email)
+      .map((r) => r.email!) as string[];
+
+    const users =
+      userIds.length || emails.length
+        ? await query<{ id: string; email: string; role: string }>(
+            `SELECT "id", "email", "role" FROM "User"
+              WHERE "id" = ANY($1) OR lower("email") = ANY($2)`,
+            [userIds, emails.map((e) => e.toLowerCase())],
+          )
+        : [];
+    const byId = new Map(users.map((u) => [u.id, u]));
+    const byEmail = new Map(users.map((u) => [u.email.toLowerCase(), u]));
+
+    // Render at most twice: once as given, once redacted.
+    const plain = {
+      subject: render(subject, vars),
+      body: render(body, vars),
+    };
+    let firewalled: { subject: string; body: string } | null = null;
+    const { vars: safeVars, redacted } = redactIdentityVars(vars);
+    if (redacted.length > 0) {
+      firewalled = {
+        subject: render(subject, safeVars),
+        body: render(body, safeVars),
+      };
+    }
 
     for (const recipient of opts.recipients) {
-      const email = recipient.email ?? emailByUserId.get(recipient.userId ?? "");
+      const user = recipient.userId
+        ? byId.get(recipient.userId)
+        : byEmail.get((recipient.email ?? "").toLowerCase());
+      const email = recipient.email ?? user?.email;
+
+      // Pre-reveal customers get the redacted variant. An unattributable
+      // address (no User row) is external partner/admin correspondence
+      // and is left as-is.
+      const behindFirewall =
+        user !== undefined &&
+        FIREWALLED_ROLES.has(user.role) &&
+        opts.revealed !== true;
+
+      if (behindFirewall && firewalled) {
+        reportNotifyIssue(
+          `identity vars [${redacted.join(", ")}] redacted for ${user!.role} recipient on "${opts.event}" — pass revealed:true only after isPartnerRevealed()`,
+          { event: opts.event, redacted },
+        );
+      }
+      const content = behindFirewall && firewalled ? firewalled : plain;
 
       if (recipient.userId) {
         await insertRow(
@@ -392,12 +501,28 @@ export async function notify(opts: NotifyOptions): Promise<void> {
           {
             userId: recipient.userId,
             type: opts.event,
-            title: renderedSubject,
-            message: renderedBody.slice(0, 2000),
+            title: content.subject,
+            message: content.body.slice(0, 2000),
             link: opts.link ?? null,
+            // Deduplicates in-app rows across retries. Email/JobRun
+            // already had unique idemKeys; Notification did not, so every
+            // retry inserted another row.
+            idemKey: opts.idemKey
+              ? `${opts.event}:${opts.idemKey}:${recipient.userId}`
+              : null,
           },
-          { noUpdatedAt: true },
-        ).catch(() => undefined);
+          {
+            noUpdatedAt: true,
+            onConflict: opts.idemKey
+              ? `("idemKey") WHERE "idemKey" IS NOT NULL DO NOTHING`
+              : undefined,
+          },
+        ).catch((err) =>
+          reportNotifyIssue(`notification insert failed for ${opts.event}`, {
+            event: opts.event,
+            err,
+          }),
+        );
       }
 
       if (email) {
@@ -405,8 +530,8 @@ export async function notify(opts: NotifyOptions): Promise<void> {
           "email.send",
           {
             toAddress: email,
-            subject: renderedSubject,
-            body: renderedBody,
+            subject: content.subject,
+            body: content.body,
             kind: "notification",
             briefId: opts.briefId ?? null,
             matchId: opts.matchId ?? null,
@@ -416,12 +541,19 @@ export async function notify(opts: NotifyOptions): Promise<void> {
               ? `${opts.event}:${opts.idemKey}:${email}`
               : undefined,
           },
-        ).catch(() => undefined);
+        ).catch((err) =>
+          reportNotifyIssue(`email enqueue failed for ${opts.event}`, {
+            event: opts.event,
+            err,
+          }),
+        );
       }
     }
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn(`[notify] failed for ${opts.event}`, err);
+    reportNotifyIssue(`notify failed for ${opts.event}`, {
+      event: opts.event,
+      err,
+    });
   }
 }
 

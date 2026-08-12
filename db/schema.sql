@@ -474,6 +474,7 @@ CREATE TABLE "Notification" (
     "message" TEXT NOT NULL,
     "link" TEXT,
     "read" BOOLEAN NOT NULL DEFAULT false,
+    "idemKey" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
@@ -776,6 +777,7 @@ CREATE TABLE "RiskRadarReport" (
     "overall" TEXT NOT NULL,
     "findings" TEXT NOT NULL DEFAULT ('[]'),
     "promptVer" TEXT NOT NULL DEFAULT 'v1',
+    "failureReason" TEXT,
     "acknowledgedAt" TIMESTAMP(3),
     "acknowledgedBy" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1166,6 +1168,9 @@ CREATE TABLE "ProposalSection" (
     "key" TEXT NOT NULL,
     "content" TEXT NOT NULL,
     "pricing" TEXT,
+    "pricingModel" TEXT,
+    "pricingAmountCents" BIGINT,
+    "pricingCurrency" TEXT,
     "rank" INTEGER NOT NULL DEFAULT 100,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

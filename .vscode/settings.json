@@ -1,0 +1,11 @@
+{
+  // The built-in CSS language server doesn't know Tailwind's at-rules, so
+  // `@tailwind` and `@apply` in src/app/globals.css get flagged as unknown.
+  // They're valid and are compiled by the tailwindcss PostCSS plugin (see
+  // postcss.config.mjs); `next lint` and `next build` both accept them.
+  //
+  // Disabling only this one diagnostic keeps genuine CSS errors visible.
+  "css.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore"
+}

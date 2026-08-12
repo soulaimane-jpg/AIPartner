@@ -20,6 +20,7 @@ import {
 } from "@/lib/storage/gcs";
 import {
   classifyUpload,
+  verifySignature,
   MAX_UPLOAD_BYTES,
 } from "@/lib/attachments/extract";
 
@@ -176,6 +177,16 @@ export async function POST(
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  // MIME type and extension are both client-controlled; verify the bytes.
+  const signature = verifySignature(classified, buffer);
+  if (!signature.ok) {
+    return NextResponse.json(
+      { ok: false, error: `“${file.name}”: ${signature.reason}` },
+      { status: 415 },
+    );
+  }
+
   const storagePath = `proposals/${match.partnerId}/${matchId}/${randomUUID()}-${safeObjectName(file.name)}`;
 
   try {

@@ -27,6 +27,7 @@ import { STAGE_LABELS } from "@/lib/constants";
 import { safeJsonParse, cn } from "@/lib/utils";
 import { computeMatch } from "@/lib/match-score";
 import { scorePartnersForBrief } from "@/lib/match-load";
+import { requireAdmin } from "@/lib/require-role";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,10 @@ export default async function AdminBriefDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // Defence-in-depth: middleware and the portal layout also gate
+  // this, but authorization should not depend on routing config alone.
+  await requireAdmin();
+
   const { id } = await params;
   const brief = await queryOne<
     ProjectBriefRow & {

@@ -39,6 +39,8 @@ import {
   WebsiteScrapeError,
 } from "@/lib/website-scrape";
 import { anthropic, CLAUDE_MODEL } from "@/lib/claude";
+import { fenceUntrusted, withUntrustedRule } from "@/lib/ai/untrusted";
+import { LLM_TIMEOUT_MS } from "@/lib/ai/parse";
 
 /** Re-verify roughly quarterly. */
 export const RESCRAPE_INTERVAL_DAYS = 90;
@@ -199,14 +201,32 @@ async function readSources(
 }
 
 async function extract(text: string, url: string): Promise<RescrapeExtract> {
-  const msg = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: 2000,
-    system: RESCRAPE_PROMPT,
-    messages: [
-      { role: "user", content: `Source URL: ${url}\n\n${text}` },
-    ],
-  });
+  // The partner controls this text completely, and the extraction feeds
+  // profile fields that feed matching. Fence it and tell the model the
+  // markers delimit data, not instructions.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
+  let msg;
+  try {
+    msg = await anthropic.messages.create(
+      {
+        model: CLAUDE_MODEL,
+        max_tokens: 2000,
+        system: withUntrustedRule(RESCRAPE_PROMPT),
+        messages: [
+          {
+            role: "user",
+            content: `Source URL: ${url}\n\n${fenceUntrusted(text, {
+              source: "partner website",
+            })}`,
+          },
+        ],
+      },
+      { signal: controller.signal },
+    );
+  } finally {
+    clearTimeout(timer);
+  }
   const raw = msg.content
     .map((b) => (b.type === "text" ? b.text : ""))
     .join("")
